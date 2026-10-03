@@ -1,6 +1,6 @@
 # Shipping
 
-Read by `/ship-tickets` and `/ship-tickets-reviewed` (samfaina/agent-skills). Copy this file to `docs/agents/shipping.md` and fill it in.
+Read by `/ship-tickets` and `/ship-tickets-reviewed` (samfaina/agent-skills). Copy this file to `docs/agents/shipping.md`, fill it in, and merge it to the default branch: the loop reads it from there.
 
 - **Base branch:** `main`
 - **Merge method:** `merge` | `squash` | `rebase` (passed to `gh pr merge --<method>`)

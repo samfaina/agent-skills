@@ -7,7 +7,7 @@ You are the **coordinator**: you own the ticket order, the CI wait and the merge
 ## Before the first ticket
 
 1. Load Orca's orchestration guide with `orca skills get orchestration`, resolving the executable as the `orchestration` skill says. The guide is the source of truth for every `orca orchestration` command below and for its safety floor: an empty or timed-out wait is a checkpoint, and only an accepted `worker_done` authorizes `worker-release`. Before any stop, abandon or retry, load its `references/recovery-and-cleanup.md`.
-2. Read `docs/agents/shipping.md` in the repo. It sets the base branch, merge method, branch naming, PR format and post-merge cleanup. If the file is missing, stop and point the user at `shared/shipping-template.md` in this plugin.
+2. Read `docs/agents/shipping.md` as the remote default branch holds it, so the loop runs the same from any worktree: `git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`, where `<default>` comes from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. It sets the base branch, merge method, branch naming, PR format and post-merge cleanup. If the default branch lacks the file, stop and point the user at `shared/shipping-template.md` in this plugin: it has to be merged there before the loop can run.
 3. Resolve the **ticket set**: the issue numbers the user passed or, with none, every open issue labelled `ready-for-agent`.
 4. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
 
