@@ -1,0 +1,15 @@
+{
+  "name": "samfaina",
+  "owner": {
+    "name": "samfaina"
+  },
+  "description": "Sam Faina's agent skills.",
+  "plugins": [
+    {
+      "name": "agent-skills",
+      "source": "./",
+      "description": "Ship GitHub tickets one by one with supervised Orca workers: implement, PR, CI, merge.",
+      "category": "engineering"
+    }
+  ]
+}
