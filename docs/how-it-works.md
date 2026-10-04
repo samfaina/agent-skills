@@ -13,6 +13,7 @@ Both shipping skills run the same loop, written for the agent in [`shared/ship-t
 
 ```mermaid
 flowchart TD
+    %% #46; is a dot. Mermaid reads a bare "1. " as a Markdown list and shows "Unsupported markdown: list".
     start([Start]) --> pick[1#46; Pick the next ready ticket]
     pick -->|none left| report([Final report])
     pick --> wt[2#46; Create the ticket's worktree]
