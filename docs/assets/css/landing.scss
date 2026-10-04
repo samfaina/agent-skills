@@ -1,0 +1,767 @@
+---
+---
+// Stylesheet for the landing layout only. The inner pages use just-the-docs'
+// stylesheet, which compiles the same shared partial through custom/custom.scss.
+
+@import "custom/setup";
+@import "custom/shared";
+
+// ── Base ────────────────────────────────────────────────────
+
+:root {
+  color-scheme: dark;
+  scroll-padding-top: $as-header-height + 16px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font: 16px/1.6 $body-font-family;
+  color: $as-fg;
+  background-color: $as-bg;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: $body-font-family;
+  color: $as-fg;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: $as-accent;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $as-accent;
+    outline-offset: 2px;
+  }
+}
+
+code,
+pre,
+kbd,
+.mono {
+  font-family: $mono-font-family;
+}
+
+code {
+  font-size: 0.9em;
+  color: $as-fg;
+}
+
+b {
+  font-weight: 600;
+  color: $as-fg;
+}
+
+.wrap {
+  max-width: 1200px;
+  padding: 0 24px;
+  margin: 0 auto;
+}
+
+.skip-to-main {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  z-index: 20;
+  padding: 8px 12px;
+  color: $as-accent-fg;
+  background-color: $as-accent;
+
+  &:focus {
+    top: 12px;
+  }
+}
+
+svg.d-none,
+.d-none {
+  display: none;
+}
+
+// Small mono label above a heading, and the same style inside cells.
+.eyebrow {
+  margin: 0 0 10px;
+  font: 500 12px/1 $mono-font-family;
+  color: $as-accent;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.k {
+  font: 500 11px/1 $mono-font-family;
+  color: $as-fg-faint;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+// A GitHub issue label, pill-shaped like GitHub draws it.
+.gh-label {
+  padding: 1px 8px;
+  font: 500 0.86em/1 $body-font-family;
+  color: $as-ok;
+  white-space: nowrap;
+  background-color: rgba($as-ok, 0.16);
+  border: 1px solid rgba($as-ok, 0.45);
+  border-radius: 2em;
+}
+
+// ── Hero ────────────────────────────────────────────────────
+
+.hero {
+  padding: 64px 0 48px;
+
+  .wrap {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+
+  h1 {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+
+    em {
+      display: block;
+      font-style: normal;
+      color: $as-accent;
+    }
+  }
+}
+
+.lede {
+  max-width: 56ch;
+  margin: 22px 0 28px;
+  font-size: 17px;
+  color: $as-fg-muted;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  font: 12px/1 $mono-font-family;
+  color: $as-fg-faint;
+
+  span::before {
+    color: $as-ok;
+    content: "✓ ";
+  }
+}
+
+.term {
+  min-width: 0;
+  font: 13px/1.75 $mono-font-family;
+  background-color: $as-bg-inset;
+  border: 1px solid $as-border-strong;
+
+  pre {
+    margin: 0;
+    padding: 16px 18px 18px;
+    font: inherit;
+    color: $as-fg-muted;
+    white-space: pre-wrap; // ligatures stay on here, see custom/_shared.scss
+  }
+}
+
+.term-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  font-size: 12px;
+  color: $as-fg-faint;
+  border-bottom: 1px solid $as-border;
+
+  i {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border: 1px solid $as-border-strong;
+  }
+
+  span {
+    margin-left: 8px;
+  }
+}
+
+.c-prompt { color: $as-fg-faint; }
+.c-cmd { color: $as-fg; }
+.c-coord { color: $as-info; }
+.c-impl { color: $as-warn; }
+.c-pr,
+.c-ok { color: $as-ok; }
+.c-num { color: $as-accent; }
+.c-str { color: $as-str; }
+
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  vertical-align: -2px;
+  background-color: $as-accent;
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor {
+    animation: none;
+  }
+}
+
+// ── Sections ────────────────────────────────────────────────
+
+.block {
+  padding-top: 72px;
+}
+
+// Requirements and installation sit closer to what comes before them.
+.block--band {
+  padding-top: 56px;
+}
+
+.head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.head-note {
+  max-width: 46ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: $as-fg-muted;
+
+  code {
+    color: $as-accent;
+  }
+}
+
+.more {
+  font: 500 13px/1 $mono-font-family;
+}
+
+// Info note with a circular "i" icon.
+.note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+
+  &::before {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    font: 600 12px/1 $mono-font-family;
+    color: $as-info;
+    content: "i";
+    background-color: rgba($as-info, 0.18);
+    border-radius: 50%;
+  }
+}
+
+// ── Framed grids: requirements, installation, loop steps ────
+// Every content block: a 1px strong frame with a 2px accent top border.
+
+.grid {
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  @include as-frame;
+}
+
+.grid--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 20px 22px 22px;
+  color: $as-fg;
+  background-color: $as-bg-raised;
+  border-right: 1px solid $as-border;
+
+  &:last-child {
+    border-right: 0;
+  }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: $as-fg-muted;
+  }
+}
+
+.cell--link {
+  gap: 0;
+
+  h3 {
+    margin: 12px 0 8px;
+    font: 600 19px/1.2 $mono-font-family;
+
+    i {
+      font-size: 15px;
+      font-style: normal;
+      color: $as-fg-faint;
+    }
+  }
+
+  &:hover {
+    text-decoration: none;
+    background-color: $as-bg-hover;
+
+    h3,
+    h3 i {
+      color: $as-accent;
+    }
+  }
+}
+
+.steps .cell {
+  gap: 0;
+
+  .k b {
+    font-weight: 500;
+    color: $as-accent;
+  }
+
+  h3 {
+    margin: 10px 0 6px;
+  }
+}
+
+// A command block with a copy button.
+.install {
+  display: flex;
+  align-self: flex-start;
+  align-items: stretch;
+  max-width: 100%;
+  min-width: 0;
+  font: 13px/1.7 $mono-font-family;
+  background-color: $as-bg-inset;
+  border: 1px solid $as-border-strong;
+
+  code {
+    display: block;
+    min-width: 0;
+    padding: 9px 14px;
+    overflow-x: auto;
+    font-size: 13px;
+    white-space: pre;
+  }
+}
+
+.copy-button {
+  padding: 0 12px;
+  font: 12px $mono-font-family;
+  color: $as-fg-muted;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid $as-border;
+
+  &:hover {
+    color: $as-fg;
+    background-color: $as-bg-hover;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $as-accent;
+    outline-offset: -2px;
+  }
+}
+
+// ── Skills table ────────────────────────────────────────────
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table.skills {
+  width: 100%;
+  font-size: 15px;
+  border-collapse: collapse;
+  @include as-frame;
+
+  th {
+    @include as-table-head;
+    border-bottom: 1px solid $as-border;
+  }
+
+  td {
+    padding: 18px;
+    color: $as-fg-muted;
+    vertical-align: top;
+    border-bottom: 1px solid $as-border;
+  }
+
+  tr:last-child td {
+    border-bottom: 0;
+  }
+
+  tbody tr:hover td {
+    background-color: $as-bg-raised;
+  }
+
+  td.cmd {
+    font: 500 14px/1.4 $mono-font-family;
+    color: $as-accent-pale;
+    white-space: nowrap;
+
+    span {
+      color: $as-fg-faint;
+    }
+  }
+
+  code {
+    padding: 1px 5px;
+    font-size: 0.86em;
+    color: $as-accent;
+    background-color: $as-accent-soft;
+    border: 1px solid $as-border;
+  }
+}
+
+.mode {
+  padding: 5px 8px;
+  font: 500 11px/1 $mono-font-family;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+}
+
+.mode--setup { color: $as-info; }
+.mode--human { color: $as-warn; }
+.mode--auto { color: $as-ok; }
+
+// ── Coordinator and workers ─────────────────────────────────
+
+.lead {
+  max-width: 72ch;
+  margin: 12px 0 24px;
+  color: $as-fg-muted;
+}
+
+.coord {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 22px;
+  background-color: $as-bg-raised;
+  @include as-frame;
+
+  .tag {
+    flex: none;
+    padding: 7px 9px;
+    font: 600 12px/1 $mono-font-family;
+    color: $as-info;
+    border: 1px solid $as-info;
+  }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  p {
+    margin-top: 3px;
+    font-size: 14px;
+    color: $as-fg-muted;
+  }
+}
+
+.workers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid $as-border-strong;
+  border-top: 0;
+}
+
+.worker {
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border-right: 1px solid $as-border;
+
+  &:last-child {
+    border-right: 0;
+  }
+
+  h3 {
+    margin: 10px 0 6px;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  > p {
+    margin-bottom: 18px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: $as-fg-muted;
+  }
+}
+
+.worker--implement .k { color: $as-warn; }
+.worker--pr .k { color: $as-ok; }
+.worker--fix .k { color: $as-err; }
+
+.accept {
+  padding: 12px 14px;
+  margin-top: auto;
+  font: 13px/1.6 $mono-font-family;
+  color: $as-fg;
+  background-color: $as-bg-inset;
+  border: 1px solid $as-border;
+
+  small {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 10.5px;
+    color: $as-fg-faint;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  code {
+    font-size: 1em;
+    color: $as-accent;
+  }
+}
+
+.callout {
+  padding: 14px 18px;
+  margin-top: 16px;
+  font-size: 14px;
+  color: $as-fg-muted;
+  background-color: $as-bg-raised;
+  border-left: 2px solid $as-accent;
+}
+
+// ── Next ────────────────────────────────────────────────────
+
+.next {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 22px;
+
+  a {
+    display: block;
+    padding: 18px 20px 20px;
+    color: $as-fg;
+    background-color: $as-bg-raised;
+    border: 1px solid $as-border;
+
+    &:hover {
+      text-decoration: none;
+      border-color: $as-accent;
+
+      .k i {
+        color: $as-accent;
+      }
+    }
+  }
+
+  .k {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: $as-accent;
+    letter-spacing: 0;
+
+    i {
+      font-style: normal;
+      color: $as-fg-faint;
+    }
+  }
+
+  h3 {
+    margin: 14px 0 6px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  p {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: $as-fg-muted;
+  }
+}
+
+// ── Footer ──────────────────────────────────────────────────
+
+.landing-footer {
+  margin-top: 80px;
+  border-top: 1px solid $as-border;
+
+  .wrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 24px;
+    padding-top: 22px;
+    padding-bottom: 48px;
+    font-size: 13px;
+    color: $as-fg-faint;
+  }
+
+  .mono {
+    color: $as-fg-muted;
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+  }
+
+  nav a {
+    color: $as-fg-muted;
+
+    &:hover {
+      color: $as-fg;
+    }
+  }
+}
+
+// ── Responsive ──────────────────────────────────────────────
+
+@media (max-width: $as-narrow) {
+  .hero .wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .hero h1 {
+    font-size: 40px;
+  }
+
+  .grid--4,
+  .next {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .grid--4 .cell {
+    &:nth-child(2) {
+      border-right: 0;
+    }
+
+    &:nth-child(-n + 2) {
+      border-bottom: 1px solid $as-border;
+    }
+  }
+
+  .workers {
+    grid-template-columns: 1fr;
+  }
+
+  .worker {
+    border-right: 0;
+    border-bottom: 1px solid $as-border;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  table.skills {
+    th:nth-child(3),
+    td:nth-child(3) {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 560px) {
+  .wrap {
+    padding: 0 16px;
+  }
+
+  .hero {
+    padding-top: 40px;
+  }
+
+  .hero h1 {
+    font-size: 34px;
+  }
+
+  h2 {
+    font-size: 26px;
+  }
+
+  .grid--4,
+  .grid--2,
+  .next {
+    grid-template-columns: 1fr;
+  }
+
+  .grid .cell,
+  .grid--4 .cell:nth-child(2) {
+    border-right: 0;
+    border-bottom: 1px solid $as-border;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  table.skills td.cmd {
+    white-space: normal;
+  }
+
+  .coord {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

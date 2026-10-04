@@ -1,0 +1,51 @@
+// Design tokens, shared by the landing page and the just-the-docs pages.
+// Imported before every colour scheme, so the scheme and custom.scss can use them.
+
+$as-bg: #0c0e11;
+$as-bg-raised: #12151a;
+$as-bg-inset: #090b0d;
+$as-bg-hover: #181c22;
+$as-border: #22272e;
+$as-border-strong: #323943;
+$as-fg: #d9dce1;
+$as-fg-muted: #959ca6;
+$as-fg-faint: #5f6670;
+$as-accent: #ffb000;
+$as-accent-fg: #1a1200;
+$as-accent-soft: rgba(255, 176, 0, 0.1);
+$as-accent-pale: #ffd985;
+$as-ok: #8fd694;
+$as-warn: #ff9447;
+$as-info: #79b8d9;
+$as-err: #ff6b6b;
+$as-str: #c3e88d;
+
+$as-header-height: 60px;
+
+// Below this width the header folds its links and search into the menu button,
+// and the landing page stacks its grids.
+$as-narrow: 959.98px;
+
+// The frame around every content block: 1px strong border, 2px accent top.
+@mixin as-frame {
+  border: 1px solid $as-border-strong;
+  border-top: 2px solid $as-accent;
+}
+
+// Table header cells, as in the skills table.
+@mixin as-table-head {
+  padding: 14px 18px;
+  font-family: $mono-font-family;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: $as-fg-faint;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background-color: $as-bg-raised;
+}
+
+$body-font-family: "Fira Sans", system-ui, sans-serif;
+$mono-font-family: "Fira Code", ui-monospace, monospace;
+$border-radius: 0;

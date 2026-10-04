@@ -1,0 +1,40 @@
+{%- comment -%}
+  The site header, shared by the landing layout and the just-the-docs pages.
+  Replaces just-the-docs' header. Keeps the ids its JavaScript looks up:
+  main-header (gets .nav-open), menu-button, search-input and search-results.
+{%- endcomment -%}
+{%- if page.layout == "landing" -%}
+  {%- assign header_kind = "landing" -%}
+{%- else -%}
+  {%- assign header_kind = "docs" -%}
+{%- endif -%}
+<header id="main-header" class="site-top site-top--{{ header_kind }}">
+  <div class="site-top-bar">
+    <a class="site-brand" href="{{ '/' | relative_url }}"><span class="site-mark" aria-hidden="true">&gt;_</span>agent-skills</a>
+    <span class="site-chip">Claude Code plugin</span>
+    <div class="site-top-menu" id="site-top-menu">
+      <nav class="site-top-links" aria-label="Site">
+        <a href="{{ '/getting-started' | relative_url }}"{% if page.url contains "/getting-started" %} aria-current="page"{% endif %}>Getting started</a>
+        <a href="{{ '/how-it-works' | relative_url }}"{% if page.url contains "/how-it-works" %} aria-current="page"{% endif %}>How it works</a>
+        <a href="{{ '/shipping-md' | relative_url }}"{% if page.url contains "/shipping-md" %} aria-current="page"{% endif %}>shipping.md</a>
+        <a href="{{ '/troubleshooting' | relative_url }}"{% if page.url contains "/troubleshooting" %} aria-current="page"{% endif %}>Troubleshooting</a>
+        <a class="site-top-external" href="{{ site.gh_edit_repository }}" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      {%- if site.search_enabled != false %}
+      <div class="site-search" role="search">
+        <label for="search-input" class="site-search-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-search"></use></svg></label>
+        <input type="text" id="search-input" class="site-search-input" placeholder="Search docs" aria-label="Search docs" autocomplete="off">
+        <kbd class="site-search-key" aria-hidden="true">/</kbd>
+        <div id="search-results" class="search-results"></div>
+      </div>
+      {%- endif %}
+    </div>
+    <button id="menu-button" class="site-menu-button" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="site-top-menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-menu"></use></svg>
+    </button>
+  </div>
+</header>
+{%- comment -%} The inner pages get their overlay from just-the-docs' search_footer.html. {%- endcomment -%}
+{%- if site.search_enabled != false and header_kind == "landing" %}
+<div class="search-overlay"></div>
+{%- endif %}

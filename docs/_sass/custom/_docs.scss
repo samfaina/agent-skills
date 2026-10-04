@@ -1,0 +1,220 @@
+// The just-the-docs pages, restyled with the shared tokens. Layout and content stay as the theme draws them.
+
+html {
+  scroll-padding-top: $as-header-height + 16px;
+}
+
+// ── The shared header is fixed across the top, above the sidebar and the content ──
+// Its bar keeps the landing page's width and padding, so the header doesn't move between pages.
+
+.site-top--docs {
+  position: fixed;
+  right: 0;
+  left: 0;
+}
+
+.side-bar {
+  padding-top: $as-header-height;
+
+  @include mq(md) {
+    top: $as-header-height;
+    height: calc(100% - #{$as-header-height});
+    padding-top: 0;
+  }
+
+  & + .main {
+    @include mq(md) {
+      padding-top: $as-header-height;
+    }
+  }
+}
+
+// Below md the opened sidebar nav sits in the page flow, under the open header menu.
+@media (max-width: $as-narrow) {
+  .site-nav.nav-open {
+    padding-top: 120px;
+
+    @include mq(md) {
+      padding-top: $sp-8;
+    }
+  }
+}
+
+// ── Sidebar ─────────────────────────────────────────────────
+
+// No gradients: just-the-docs paints nav links with background images, including
+// from the head-nav stylesheet and the activation <style> that load before its JS.
+.site-nav ul li a,
+.site-title,
+.site-button {
+  background-image: none !important;
+}
+
+.nav-list .nav-list-item {
+  .nav-list-link {
+    color: $as-fg-muted;
+
+    &:hover {
+      color: $as-fg;
+      background-color: $as-bg-hover;
+    }
+
+    &.active {
+      color: $as-accent;
+      background-color: $as-accent-soft;
+    }
+  }
+
+  .nav-list-expander:hover {
+    background-color: $as-bg-hover;
+  }
+}
+
+.site-footer {
+  color: $as-fg-faint;
+}
+
+// ── Content ─────────────────────────────────────────────────
+
+.main-content {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  h1 {
+    font-weight: 700;
+  }
+
+  a:not([class]):hover {
+    text-decoration-color: $as-accent;
+  }
+
+  strong {
+    font-weight: 600;
+    color: $as-fg;
+  }
+}
+
+:not(pre, figure) > code {
+  padding: 0.1em 0.3em;
+  font-size: 0.86em;
+  color: $as-fg;
+  border-color: $as-border;
+}
+
+// ── Code blocks, on the inset background ────────────────────
+
+div.highlighter-rouge,
+figure.highlight {
+  border: 1px solid $as-border;
+}
+
+.highlight,
+pre.highlight,
+.highlight pre,
+.highlight .hll {
+  color: $as-fg;
+  background: $as-bg-inset;
+}
+
+.highlight {
+  .c,
+  .c1,
+  .cm,
+  .cp,
+  .cs {
+    color: $as-fg-faint;
+  }
+
+  .k,
+  .kc,
+  .kd,
+  .kn,
+  .kp,
+  .kr,
+  .kt,
+  .nt,
+  .gh,
+  .gu {
+    color: $as-accent;
+  }
+
+  .s,
+  .s1,
+  .s2,
+  .sb,
+  .sc,
+  .sd,
+  .se,
+  .sh,
+  .si,
+  .sx {
+    color: $as-str;
+  }
+
+  .m,
+  .mf,
+  .mh,
+  .mi,
+  .mo,
+  .na,
+  .nb {
+    color: $as-info;
+  }
+
+  .err {
+    color: $as-err;
+    background: none;
+  }
+}
+
+div.language-mermaid {
+  padding: $sp-4;
+  text-align: center;
+}
+
+// ── Tables, drawn like the skills table on the landing page ──
+
+.table-wrapper {
+  @include as-frame;
+  box-shadow: none;
+}
+
+.main-content {
+  table {
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 14px 18px;
+    font-size: 14px !important;
+    color: $as-fg-muted;
+    background-color: transparent;
+    border-bottom: 1px solid $as-border;
+    border-left: 0;
+  }
+
+  th {
+    @include as-table-head;
+    font-size: 11px !important;
+  }
+
+  tbody tr:hover td {
+    background-color: $as-bg-raised;
+  }
+
+  td:first-child code {
+    color: $as-accent-pale;
+  }
+}
+
+hr {
+  background-color: $as-border;
+}
