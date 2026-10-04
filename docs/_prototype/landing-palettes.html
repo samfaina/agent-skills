@@ -1,0 +1,470 @@
+<title>agent-skills Landing</title>
+<!--
+  PROTOTYPE — throwaway. Not built by Jekyll (underscore folder).
+  Authored in Artifact format: no doctype/html/head/body, the Artifact publish wraps it.
+  Question: which dark palette and requirements placement for the docs landing page?
+  Palettes A|E|B|C|D and placements band|hero|strip switch from the floating bar (or ← →).
+  A hash like #E-hero preselects both.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Palettes ─────────────────────────────────────────────── */
+/* Single dark look by design: A is the base on :root, the other variants override it. */
+:root, html[data-variant="A"] { /* Amber phosphor */
+  --bg:#0c0e11; --bg-raised:#12151a; --bg-inset:#090b0d; --bg-hover:#181c22;
+  --border:#22272e; --border-strong:#323943;
+  --fg:#d9dce1; --fg-muted:#959ca6; --fg-faint:#5f6670;
+  --accent:#ffb000; --accent-fg:#1a1200; --accent-soft:rgba(255,176,0,.10); --accent-pale:#ffd985;
+  --ok:#8fd694; --warn:#ff9447; --info:#79b8d9; --err:#ff6b6b; --str:#c3e88d;
+}
+html[data-variant="E"] { /* A with a #ff0076 accent; err moved toward orange and warn to amber so neither reads as the accent */
+  --bg:#0c0e11; --bg-raised:#12151a; --bg-inset:#090b0d; --bg-hover:#181c22;
+  --border:#22272e; --border-strong:#323943;
+  --fg:#d9dce1; --fg-muted:#959ca6; --fg-faint:#5f6670;
+  --accent:#ff0076; --accent-fg:#14000a; --accent-soft:rgba(255,0,118,.10);
+  --ok:#8fd694; --warn:#ffb000; --info:#79b8d9; --err:#ff7a3d; --str:#c3e88d;
+}
+html[data-variant="B"] { /* Tokyo Night */
+  --bg:#1a1b26; --bg-raised:#1f2335; --bg-inset:#16161e; --bg-hover:#24283b;
+  --border:#292e42; --border-strong:#3b4261;
+  --fg:#c0caf5; --fg-muted:#a9b1d6; --fg-faint:#565f89;
+  --accent:#7aa2f7; --accent-fg:#16161e; --accent-soft:rgba(122,162,247,.10);
+  --ok:#9ece6a; --warn:#ff9e64; --info:#7dcfff; --err:#f7768e; --str:#9ece6a;
+}
+html[data-variant="C"] { /* Ayu Dark */
+  --bg:#0d1017; --bg-raised:#131721; --bg-inset:#0b0e14; --bg-hover:#181d28;
+  --border:#1e232d; --border-strong:#2d3340;
+  --fg:#bfbdb6; --fg-muted:#8a8f98; --fg-faint:#565b66;
+  --accent:#e6b450; --accent-fg:#0d1017; --accent-soft:rgba(230,180,80,.10);
+  --ok:#aad94c; --warn:#ff8f40; --info:#59c2ff; --err:#d95757; --str:#aad94c;
+}
+html[data-variant="D"] { /* Ayu Mirage */
+  --bg:#1f2430; --bg-raised:#242936; --bg-inset:#1a1f29; --bg-hover:#2a303d;
+  --border:#2f3543; --border-strong:#3d4455;
+  --fg:#cccac2; --fg-muted:#959ba6; --fg-faint:#707a8c;
+  --accent:#ffcc66; --accent-fg:#1f2430; --accent-soft:rgba(255,204,102,.10);
+  --ok:#d5ff80; --warn:#ffad66; --info:#73d0ff; --err:#ff6666; --str:#d5ff80;
+}
+
+/* Pale accent for command names: hand-picked on A, derived for the rest */
+html[data-variant]:not([data-variant="A"]) { --accent-pale:color-mix(in srgb, var(--accent) 55%, #fff); }
+
+/* ── Base ─────────────────────────────────────────────────── */
+:root { color-scheme:dark; --sans:"Fira Sans", system-ui, sans-serif; --mono:"Fira Code", ui-monospace, monospace; --max:1200px; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--bg); color:var(--fg); }
+body { font:16px/1.6 var(--sans); -webkit-font-smoothing:antialiased; }
+code, pre, kbd, .mono { font-family:var(--mono); font-feature-settings:"calt" 0, "liga" 0; }
+.term pre { font-feature-settings:normal; } /* ligatures only in the decorative hero terminal */
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; text-underline-offset:3px; }
+.wrap { max-width:var(--max); margin:0 auto; padding:0 24px; }
+.eyebrow { font:500 12px/1 var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--accent); margin:0 0 10px; }
+h1, h2, h3 { font-family:var(--sans); color:var(--fg); margin:0; letter-spacing:-.01em; }
+h2 { font-size:30px; font-weight:600; }
+/* GitHub issue label, pill-shaped like GitHub draws it, in the palette's ok green */
+.gh-label { white-space:nowrap; padding:1px 8px; border-radius:2em; border:1px solid color-mix(in srgb, var(--ok) 45%, transparent); background:color-mix(in srgb, var(--ok) 16%, transparent); color:var(--ok); font:500 .86em/1 var(--sans); }
+code.inline { font-size:.86em; color:var(--accent); background:var(--accent-soft); padding:1px 5px; border:1px solid var(--border); }
+
+/* ── Header ───────────────────────────────────────────────── */
+header.top { border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:env(safe-area-inset-top, 0px); z-index:5; }
+header.top .wrap { display:flex; align-items:center; gap:28px; height:60px; }
+.brand { display:flex; align-items:center; gap:10px; color:var(--fg); font-weight:600; }
+.brand:hover { text-decoration:none; }
+.logo { width:28px; height:28px; border:1px solid var(--accent); color:var(--accent); display:grid; place-items:center; font:600 13px/1 var(--mono); }
+.chip { font:500 12px/1 var(--mono); color:var(--fg-muted); border:1px solid var(--border); padding:5px 8px; }
+.chip .dot { color:var(--ok); }
+nav.links { display:flex; gap:22px; margin-left:auto; font-size:14px; }
+nav.links a { color:var(--fg-muted); }
+nav.links a:hover { color:var(--fg); text-decoration:none; }
+.search { display:flex; align-items:center; gap:8px; width:220px; border:1px solid var(--border); background:var(--bg-inset); padding:7px 10px; color:var(--fg-faint); font-size:13px; }
+.search kbd { margin-left:auto; font-size:11px; border:1px solid var(--border-strong); padding:1px 5px; color:var(--fg-muted); }
+
+.strip { border-bottom:1px solid var(--border); background:var(--bg-raised); }
+.strip .wrap { display:flex; gap:18px; align-items:center; height:44px; font:500 13px/1 var(--mono); color:var(--fg-muted); overflow-x:auto; white-space:nowrap; }
+.strip b { color:var(--accent); font-weight:500; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+.strip a { color:var(--fg); border-bottom:1px solid var(--border-strong); padding-bottom:2px; }
+.strip a::after { content:" ↗"; color:var(--fg-faint); }
+.strip a:hover { text-decoration:none; color:var(--accent); border-bottom-color:var(--accent); }
+.strip a:hover::after { color:var(--accent); }
+.strip .sep { color:var(--border-strong); }
+.strip .why { margin-left:auto; color:var(--fg-faint); font-size:12px; }
+.strip .why a::after { content:""; }
+
+/* ── Requirements: three placements, switched by html[data-req] ── */
+html:not([data-req="strip"]) .strip,
+html:not([data-req="hero"]) .req-hero,
+html:not([data-req="band"]) .req-band { display:none; }
+
+/* strip: louder than before */
+html[data-req="strip"] .strip { background:var(--accent-soft); border-bottom-color:var(--accent); }
+html[data-req="strip"] .strip b { background:var(--accent); color:var(--accent-fg); padding:5px 8px; }
+html[data-req="strip"] .strip .wrap { height:48px; font-size:14px; }
+
+/* hero: checklist inside the hero, between lede and buttons */
+.req-hero { border:1px solid var(--border-strong); border-left:2px solid var(--accent); background:var(--bg-raised); margin:-6px 0 28px; }
+.req-hero-head { display:flex; justify-content:space-between; gap:12px; padding:10px 14px; border-bottom:1px solid var(--border); font:12px/1.3 var(--mono); color:var(--fg-faint); }
+.req-hero-head b { color:var(--accent); font-weight:500; letter-spacing:.08em; text-transform:uppercase; font-size:11px; }
+.req-hero ul { list-style:none; margin:0; padding:6px 0; }
+.req-hero li { display:grid; grid-template-columns:170px 1fr; gap:12px; padding:6px 14px; font-size:14px; align-items:baseline; }
+.req-hero li a { font:500 14px/1.3 var(--mono); color:var(--fg); }
+.req-hero li a::before { content:"[✓] "; color:var(--ok); }
+.req-hero li a::after { content:" ↗"; color:var(--fg-faint); }
+.req-hero li a:hover { color:var(--accent); text-decoration:none; }
+.req-hero li span { color:var(--fg-muted); line-height:1.4; }
+.req-hero code { font-size:.9em; color:var(--fg); }
+
+/* band: its own section right under the hero */
+.wrap.req-band { padding-top:56px; }
+.head-row .more { font:500 13px/1 var(--mono); }
+.req-band-head { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:18px; flex-wrap:wrap; }
+.req-band-head > p { margin:0; max-width:46ch; font-size:14px; color:var(--fg-muted); }
+.req-band-head code { color:var(--accent); font-size:.92em; }
+.req-grid { display:grid; grid-template-columns:repeat(4,1fr); border:1px solid var(--border-strong); border-top:2px solid var(--accent); }
+.req-grid a { display:block; padding:20px 22px 22px; border-right:1px solid var(--border); color:var(--fg); background:var(--bg-raised); }
+.req-grid a:last-child { border-right:0; }
+.req-grid a:hover { text-decoration:none; background:var(--bg-hover); }
+.req-grid .k { font:500 11px/1 var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--fg-faint); }
+.req-grid h3 { font:600 19px/1.2 var(--mono); margin:12px 0 8px; }
+.req-grid h3 i { font-style:normal; color:var(--fg-faint); font-size:15px; }
+.req-grid a:hover h3, .req-grid a:hover h3 i { color:var(--accent); }
+.req-grid p { margin:0; font-size:14px; line-height:1.5; color:var(--fg-muted); }
+.req-grid code { font-size:.9em; color:var(--fg); }
+.req-grid.two { grid-template-columns:1fr 1fr; }
+.req-grid .cell { padding:20px 22px 22px; border-right:1px solid var(--border); background:var(--bg-raised); min-width:0; display:flex; flex-direction:column; gap:12px; }
+.req-grid .cell:last-child { border-right:0; }
+.req-grid .cell h3 { margin:0; }
+.req-grid .cell .install { align-self:flex-start; max-width:100%; }
+.req-grid .cell .install code { font-size:13px; color:var(--fg); }
+.req-grid .cell a { display:inline; padding:0; border:0; background:none; color:var(--accent); }
+
+/* ── Hero ─────────────────────────────────────────────────── */
+.hero { padding:64px 0 48px; }
+.hero .wrap { display:grid; grid-template-columns:1.05fr 1fr; gap:48px; align-items:center; }
+.install-step { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; }
+.install-step .k { flex-basis:100%; font:500 11px/1 var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--fg-faint); }
+.install-step.in-hero { margin:0 0 24px; }
+.install-step.in-band { margin-top:20px; }
+html[data-req="band"] .install-step.in-hero { display:none; }
+.install { display:flex; align-items:stretch; min-width:0; border:1px solid var(--border-strong); background:var(--bg-inset); font:13px/1.7 var(--mono); }
+.install code { display:block; padding:9px 14px; color:var(--fg); white-space:pre; overflow-x:auto; min-width:0; }
+.install button { border:0; border-left:1px solid var(--border); background:transparent; color:var(--fg-muted); font:12px var(--mono); padding:0 12px; cursor:pointer; }
+.install button:hover { color:var(--fg); background:var(--bg-hover); }
+.hero h1 { font-size:52px; line-height:1.08; font-weight:700; letter-spacing:-.025em; }
+.hero h1 em { font-style:normal; color:var(--accent); display:block; }
+.hero p.lede { color:var(--fg-muted); font-size:17px; margin:22px 0 28px; max-width:56ch; }
+.actions { display:flex; gap:12px; flex-wrap:wrap; }
+.btn { display:inline-flex; align-items:center; gap:8px; padding:11px 18px; font:500 15px/1 var(--sans); border:1px solid var(--border-strong); color:var(--fg); background:transparent; }
+.btn:hover { text-decoration:none; background:var(--bg-hover); }
+.btn.primary { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+.btn.primary:hover { filter:brightness(1.08); background:var(--accent); }
+.facts { display:flex; flex-wrap:wrap; gap:8px 22px; margin-top:0; font:12px/1 var(--mono); color:var(--fg-faint); }
+.facts span::before { content:"✓ "; color:var(--ok); }
+
+.term { border:1px solid var(--border-strong); background:var(--bg-inset); font:13px/1.75 var(--mono); }
+.term .bar { display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); padding:9px 14px; color:var(--fg-faint); font-size:12px; }
+.term .bar i { width:9px; height:9px; border:1px solid var(--border-strong); display:inline-block; }
+.term .bar .t { margin-left:8px; }
+.term pre { margin:0; padding:16px 18px 18px; white-space:pre-wrap; color:var(--fg-muted); }
+.c-prompt { color:var(--fg-faint); } .c-cmd { color:var(--fg); }
+.c-coord { color:var(--info); } .c-impl { color:var(--warn); } .c-pr { color:var(--ok); }
+.c-num { color:var(--accent); } .c-str { color:var(--str); } .c-ok { color:var(--ok); }
+.cursor { display:inline-block; width:8px; height:15px; background:var(--accent); vertical-align:-2px; animation:blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity:0; } }
+
+/* ── Steps ────────────────────────────────────────────────── */
+.steps { display:grid; grid-template-columns:repeat(4,1fr); border:1px solid var(--border-strong); border-top:2px solid var(--accent); background:var(--bg-raised); }
+.steps > div { padding:22px 22px 24px; border-right:1px solid var(--border); }
+.steps > div:last-child { border-right:0; }
+.steps .n { font:500 11px/1 var(--mono); letter-spacing:.08em; color:var(--fg-faint); text-transform:uppercase; }
+.steps .n b { color:var(--accent); font-weight:500; }
+.steps h3 { font-size:17px; font-weight:600; margin:10px 0 6px; }
+.steps p { margin:0; font-size:14px; color:var(--fg-muted); line-height:1.5; }
+
+section.block { padding:72px 0 0; }
+.head-row { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:22px; flex-wrap:wrap; }
+.note { display:flex; gap:10px; align-items:flex-start; max-width:46ch; margin:0; font-size:14px; line-height:1.5; color:var(--fg-muted); }
+.note::before { content:"i"; flex:none; display:grid; place-items:center; width:20px; height:20px; margin-top:1px; border-radius:100%; background:color-mix(in srgb, var(--info) 18%, transparent); color:var(--info); font:600 12px/1 var(--mono); }
+
+/* ── Skills table ─────────────────────────────────────────── */
+table.skills { width:100%; border-collapse:collapse; border:1px solid var(--border-strong); border-top:2px solid var(--accent); font-size:15px; }
+.skills th { text-align:left; font:500 11px/1 var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--fg-faint); background:var(--bg-raised); padding:14px 18px; border-bottom:1px solid var(--border); }
+.skills td { padding:18px; border-bottom:1px solid var(--border); vertical-align:top; color:var(--fg-muted); }
+.skills tr:last-child td { border-bottom:0; }
+.skills tr:hover td { background:var(--bg-raised); }
+.skills td.cmd { font:500 14px/1.4 var(--mono); color:var(--accent-pale); white-space:nowrap; }
+.skills td.cmd span { color:var(--fg-faint); }
+.mode { font:500 11px/1 var(--mono); letter-spacing:.04em; text-transform:uppercase; padding:5px 8px; border:1px solid currentColor; white-space:nowrap; }
+.mode.setup { color:var(--info); } .mode.human { color:var(--warn); } .mode.auto { color:var(--ok); }
+
+/* ── Who does what ────────────────────────────────────────── */
+.lead { color:var(--fg-muted); max-width:72ch; margin:12px 0 24px; }
+.coord { display:flex; gap:16px; align-items:center; border:1px solid var(--border-strong); border-top:2px solid var(--accent); background:var(--bg-raised); padding:18px 22px; }
+.coord .tag { font:600 12px/1 var(--mono); color:var(--info); border:1px solid var(--info); padding:7px 9px; }
+.coord h3 { font-size:17px; font-weight:600; }
+.coord p { margin:3px 0 0; font-size:14px; color:var(--fg-muted); }
+.workers { display:grid; grid-template-columns:repeat(3,1fr); gap:0; border:1px solid var(--border-strong); border-top:0; }
+.worker { padding:22px; border-right:1px solid var(--border); display:flex; flex-direction:column; }
+.worker:last-child { border-right:0; }
+.worker .n { font:500 11px/1 var(--mono); letter-spacing:.08em; text-transform:uppercase; }
+.worker:nth-child(1) .n { color:var(--warn); } .worker:nth-child(2) .n { color:var(--ok); } .worker:nth-child(3) .n { color:var(--err); }
+.worker h3 { font-size:20px; font-weight:600; margin:10px 0 6px; }
+.worker p { margin:0 0 18px; font-size:14px; color:var(--fg-muted); line-height:1.5; }
+.accept { margin-top:auto; border:1px solid var(--border); background:var(--bg-inset); padding:12px 14px; font:13px/1.6 var(--mono); color:var(--fg); }
+.accept small { display:block; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-faint); margin-bottom:4px; }
+.accept code { color:var(--accent); }
+.callout { margin-top:16px; border-left:2px solid var(--accent); background:var(--bg-raised); padding:14px 18px; font-size:14px; color:var(--fg-muted); }
+.callout b { color:var(--fg); font-weight:600; }
+
+/* ── Next ─────────────────────────────────────────────────── */
+.next { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.next a { display:block; border:1px solid var(--border); background:var(--bg-raised); padding:18px 20px 20px; color:var(--fg); }
+.next a:hover { text-decoration:none; border-color:var(--accent); }
+.next .n { display:flex; justify-content:space-between; font:500 12px/1 var(--mono); color:var(--accent); }
+.next .n span { color:var(--fg-faint); }
+.next a:hover .n span { color:var(--accent); }
+.next h3 { font-size:16px; font-weight:600; margin:14px 0 6px; }
+.next p { margin:0; font-size:13.5px; color:var(--fg-muted); line-height:1.5; }
+
+footer { margin-top:80px; border-top:1px solid var(--border); }
+footer .wrap { display:flex; justify-content:space-between; align-items:center; gap:24px; padding-top:22px; padding-bottom:90px; font-size:13px; color:var(--fg-faint); flex-wrap:wrap; }
+footer .mono { color:var(--fg-muted); }
+footer nav { display:flex; gap:20px; }
+footer nav a { color:var(--fg-muted); }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width:960px) {
+  nav.links, .search { display:none; }
+  .hero .wrap { grid-template-columns:1fr; }
+  .hero h1 { font-size:40px; }
+  .steps, .next { grid-template-columns:1fr 1fr; }
+  .steps > div:nth-child(2) { border-right:0; }
+  .steps > div:nth-child(-n+2) { border-bottom:1px solid var(--border); }
+  .workers { grid-template-columns:1fr; }
+  .req-grid { grid-template-columns:1fr 1fr; }
+  .req-grid a:nth-child(2) { border-right:0; }
+  .req-grid a:nth-child(-n+2) { border-bottom:1px solid var(--border); }
+  .req-hero li { grid-template-columns:1fr; gap:2px; }
+  .worker { border-right:0; border-bottom:1px solid var(--border); }
+  .skills th:nth-child(3), .skills td:nth-child(3) { display:none; }
+}
+@media (max-width:560px) {
+  .wrap { padding:0 16px; }
+  .steps, .next { grid-template-columns:1fr; }
+  .steps > div { border-right:0; border-bottom:1px solid var(--border); }
+  .req-grid { grid-template-columns:1fr; }
+  .req-grid a { border-right:0; border-bottom:1px solid var(--border); }
+  .req-grid.two { grid-template-columns:1fr; }
+  .req-grid .cell { border-right:0; border-bottom:1px solid var(--border); }
+  .skills td.cmd { white-space:normal; }
+}
+
+/* ── Prototype switcher (not part of the design) ──────────── */
+a:focus-visible, button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+@media (prefers-reduced-motion: reduce) { .cursor { animation:none; } }
+#proto-bar { position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); z-index:99; display:flex; align-items:center; gap:4px; background:#fff; color:#111; border-radius:999px; padding:5px; box-shadow:0 4px 20px rgba(0,0,0,.5); font:500 13px/1 system-ui, sans-serif; }
+#proto-bar button { border:0; background:#eee; color:#111; border-radius:999px; height:30px; min-width:30px; padding:0 10px; cursor:pointer; font:inherit; }
+#proto-bar button:hover { background:#ddd; }
+#proto-bar .label { padding:0 12px; min-width:170px; text-align:center; }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="https://samfaina.github.io/agent-skills/" target="_blank" rel="noopener"><span class="logo">&gt;_</span>agent-skills</a>
+    <span class="chip mono">Claude Code plugin</span>
+    <nav class="links">
+      <a href="https://samfaina.github.io/agent-skills/getting-started" target="_blank" rel="noopener">Getting started</a>
+      <a href="https://samfaina.github.io/agent-skills/how-it-works" target="_blank" rel="noopener">How it works</a>
+      <a href="https://samfaina.github.io/agent-skills/shipping-md" target="_blank" rel="noopener">shipping.md</a>
+      <a href="https://samfaina.github.io/agent-skills/troubleshooting" target="_blank" rel="noopener">Troubleshooting</a>
+      <a href="https://github.com/samfaina/agent-skills" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <div class="search">Search docs<kbd class="mono">/</kbd></div>
+  </div>
+</header>
+
+<div class="strip">
+  <div class="wrap">
+    <b>requires</b>
+    <a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener">Claude Code</a><span class="sep">/</span>
+    <a href="https://github.com/stablyai/orca" target="_blank" rel="noopener">Orca</a><span class="sep">/</span>
+    <a href="https://cli.github.com/" target="_blank" rel="noopener">GitHub CLI</a><span class="sep">/</span>
+    <a href="https://github.com/mattpocock/skills" target="_blank" rel="noopener">mattpocock-skills</a>
+    <span class="why"><a href="https://samfaina.github.io/agent-skills/getting-started#requirements" target="_blank" rel="noopener">why each one →</a></span>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Ship GitHub tickets, one at a time.<em>Each one built on the last.</em></h1>
+      <p class="lede">A Claude Code plugin that ships GitHub tickets for you, one at a time. For each ticket it opens an Orca worktree, has one agent build it test-first and another open the PR, waits for CI, and merges. The next ticket starts from the branch the last one merged into, so it builds on the code before it.</p>
+      <div class="req-hero">
+        <div class="req-hero-head"><b>requires</b><span><code>/setup-ship-tickets</code> checks each one</span></div>
+        <ul>
+          <li><a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener">Claude Code</a><span>runs the skills; your session is the coordinator</span></li>
+          <li><a href="https://github.com/stablyai/orca" target="_blank" rel="noopener">Orca</a><span>a worktree per ticket, runs the workers</span></li>
+          <li><a href="https://cli.github.com/" target="_blank" rel="noopener">GitHub CLI</a><span>issues, PRs, CI; run <code>gh auth login</code></span></li>
+          <li><a href="https://github.com/mattpocock/skills" target="_blank" rel="noopener">mattpocock-skills</a><span>workers use its <code>tdd</code> and <code>code-review</code></span></li>
+        </ul>
+      </div>
+      <div class="install-step in-hero">
+        <span class="k">install</span>
+        <div class="install"><code>/plugin marketplace add samfaina/agent-skills
+/plugin install agent-skills@samfaina</code><button class="copy-install" type="button">copy</button></div>
+        <a class="btn primary" href="https://samfaina.github.io/agent-skills/getting-started#set-up-a-repo" target="_blank" rel="noopener">Set up a repo →</a>
+      </div>
+      <div class="facts"><span>test-first workers</span><span>one worktree per ticket</span></div>
+    </div>
+    <div class="term">
+      <div class="bar"><i></i><i></i><i></i><span class="t">~/your-repo — claude</span></div>
+<pre><span class="c-prompt">&gt;</span> <span class="c-cmd">/ship-tickets 41 42</span>
+
+<span class="c-coord">[coordinator]</span> read docs/agents/shipping.md from origin/main
+<span class="c-coord">[coordinator]</span> ticket set <span class="c-num">#41</span> <span class="c-num">#42</span> -> picking <span class="c-num">#41</span>, no open blockers
+<span class="c-coord">[coordinator]</span> worktree <span class="c-str">ship/41-retry-webhooks</span> from origin/main
+<span class="c-impl">[worker:implement]</span> 3 tests added, suite passing, committed
+<span class="c-pr">[worker:pr]</span> opened PR <span class="c-num">#58</span>, body ends <span class="c-str">"Closes #41"</span>
+<span class="c-coord">[coordinator]</span> CI <span class="c-ok">green</span> (3/3 checks) => squash merge
+<span class="c-coord">[coordinator]</span> issue <span class="c-num">#41</span> closed -> worktree removed
+<span class="c-coord">[coordinator]</span> picking <span class="c-num">#42</span> from updated origin/main <span class="cursor"></span></pre>
+    </div>
+  </div>
+</section>
+
+<div class="wrap req-band">
+  <div class="req-band-head">
+    <div><p class="eyebrow">Before you install</p><h2>Requirements</h2></div>
+    <p><code>/setup-ship-tickets</code> checks each of these for you and tells you how to fix what's missing.</p>
+  </div>
+  <div class="req-grid">
+    <a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener"><span class="k">runtime</span><h3>Claude Code <i>↗</i></h3><p>Runs the skills. Your session is the coordinator.</p></a>
+    <a href="https://github.com/stablyai/orca" target="_blank" rel="noopener"><span class="k">worktrees</span><h3>Orca <i>↗</i></h3><p>Gives each ticket its own worktree and runs the workers. Start the coordinator from an Orca terminal.</p></a>
+    <a href="https://cli.github.com/" target="_blank" rel="noopener"><span class="k">github</span><h3>GitHub CLI <i>↗</i></h3><p>Reads issues, opens and merges PRs, watches CI. Run <code>gh auth login</code> first.</p></a>
+    <a href="https://github.com/mattpocock/skills" target="_blank" rel="noopener"><span class="k">skills</span><h3>mattpocock-skills <i>↗</i></h3><p>Workers build with its <code>tdd</code> skill and review with <code>code-review</code>.</p></a>
+  </div>
+</div>
+
+<div class="wrap req-band install-band">
+  <div class="req-band-head">
+    <div><p class="eyebrow">Then</p><h2>Installation</h2></div>
+    <p>Install the plugin once in Claude Code, then set up each repo you want the loop to ship.</p>
+  </div>
+  <div class="req-grid two">
+    <div class="cell"><span class="k">once · any claude code session</span><h3>Install the plugin</h3>
+      <div class="install"><code>/plugin marketplace add samfaina/agent-skills
+/plugin install agent-skills@samfaina</code><button class="copy-install" type="button">copy</button></div></div>
+    <div class="cell"><span class="k">per repo · from an orca terminal</span><h3>Set up a repo</h3>
+      <div class="install"><code>/setup-ship-tickets</code><button class="copy-install" type="button">copy</button></div>
+      <p>Checks the repo is ready and opens a PR with <code>docs/agents/shipping.md</code>. Merge it before the first run. <a href="https://samfaina.github.io/agent-skills/getting-started#set-up-a-repo" target="_blank" rel="noopener">How setup works →</a></p></div>
+  </div>
+</div>
+
+<section class="block">
+<div class="wrap">
+  <div class="head-row">
+    <div><p class="eyebrow">How it works</p><h2>The loop, one ticket at a time</h2></div>
+    <a class="more" href="https://samfaina.github.io/agent-skills/how-it-works" target="_blank" rel="noopener">Every step in detail →</a>
+  </div>
+  <div class="steps">
+    <div><div class="n"><b>01</b> / pick</div><h3>Next ready ticket</h3><p>The lowest-numbered open issue whose blockers are all closed, from <span class="gh-label">ready-for-agent</span> or your arguments.</p></div>
+    <div><div class="n"><b>02</b> / worktree</div><h3>Its own Orca worktree</h3><p>Branched from the remote base, which already has the previous ticket merged.</p></div>
+    <div><div class="n"><b>03</b> / implement + pr</div><h3>Fresh workers</h3><p>One builds it test-first and reviews its own diff. Another opens the PR in your repo's format.</p></div>
+    <div><div class="n"><b>04</b> / ci + merge</div><h3>Green, then merged</h3><p>Red runs go to a fix worker, at most twice. Then it merges and cleans up.</p></div>
+  </div>
+</div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <div class="head-row">
+      <div><p class="eyebrow">Command reference</p><h2>The skills</h2></div>
+      <div class="note"><span>With no issue numbers, the shipping skills take every open issue labelled <span class="gh-label">ready-for-agent</span>.</span></div>
+    </div>
+    <table class="skills">
+      <thead><tr><th>Skill</th><th>When to run it</th><th>Merge</th></tr></thead>
+      <tbody>
+        <tr><td class="cmd">/setup-ship-tickets</td><td>Once per repo. Checks the repo is ready and opens a PR with <code class="inline">docs/agents/shipping.md</code>, the file the loop reads.</td><td><span class="mode setup">setup</span></td></tr>
+        <tr><td class="cmd">/ship-tickets-reviewed <span>[#n…]</span></td><td>To ship tickets and approve each merge yourself, or ask for changes first.</td><td><span class="mode human">you approve</span></td></tr>
+        <tr><td class="cmd">/ship-tickets <span>[#n…]</span></td><td>To ship tickets and merge each PR as soon as its CI is green.</td><td><span class="mode auto">on green CI</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <p class="eyebrow">Who does what</p>
+    <h2>Coordinator and workers</h2>
+    <p class="lead">Your Claude Code session is the <b>coordinator</b>. It picks the order, waits for CI and merges. The coding happens in <b>workers</b>: fresh Orca agents, each started for one job in the ticket's worktree, with a written spec of what to do and how the coordinator will check it.</p>
+    <div class="coord">
+      <span class="tag">coordinator</span>
+      <div><h3>Your Claude Code session</h3><p>Picks the order, starts the workers, checks their work, waits for CI and merges.</p></div>
+    </div>
+    <div class="workers">
+      <div class="worker"><span class="n">worker 01</span><h3>Implement</h3><p>Builds the ticket test-first, reviews its own diff, commits.</p><div class="accept"><small>accepted when</small>The branch has commits and a clean working tree.</div></div>
+      <div class="worker"><span class="n">worker 02</span><h3>PR</h3><p>Pushes the branch and opens the PR in your repo's format.</p><div class="accept"><small>accepted when</small>The PR exists on the ticket's branch and its body says <code>Closes #&lt;n&gt;</code>.</div></div>
+      <div class="worker"><span class="n">worker 03</span><h3>Fix</h3><p>Fixes a red CI run, or the changes you asked for in review.</p><div class="accept"><small>accepted when</small>The fix is pushed.</div></div>
+    </div>
+    <div class="callout"><b>Empty context.</b> Each worker starts with an empty context, so the PR worker writes from the commits and the ticket, not from the implementer's reasoning.</div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <p class="eyebrow">Docs</p>
+    <h2 style="margin-bottom:22px">Next</h2>
+    <div class="next">
+      <a href="https://samfaina.github.io/agent-skills/getting-started" target="_blank" rel="noopener"><div class="n">01<span>↗</span></div><h3>Getting started</h3><p>Requirements, install, and setting up a repo.</p></a>
+      <a href="https://samfaina.github.io/agent-skills/how-it-works" target="_blank" rel="noopener"><div class="n">02<span>↗</span></div><h3>How the loop works</h3><p>Every step, from picking a ticket to cleaning up.</p></a>
+      <a href="https://samfaina.github.io/agent-skills/shipping-md" target="_blank" rel="noopener"><div class="n">03<span>↗</span></div><h3>shipping.md reference</h3><p>The per-repo settings file.</p></a>
+      <a href="https://samfaina.github.io/agent-skills/troubleshooting" target="_blank" rel="noopener"><div class="n">04<span>↗</span></div><h3>Troubleshooting</h3><p>Why the loop stops and what to do.</p></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span><span class="mono">agent-skills</span> · a Claude Code plugin by samfaina</span>
+    <nav><a href="https://github.com/samfaina/agent-skills/edit/main/docs/index.md" target="_blank" rel="noopener">Edit this page on GitHub</a><a href="https://github.com/samfaina/agent-skills/issues" target="_blank" rel="noopener">Issues</a><a href="https://github.com/samfaina/agent-skills" target="_blank" rel="noopener">GitHub</a></nav>
+  </div>
+</footer>
+
+<div id="proto-bar">
+  <button id="prev" title="Previous (←)">←</button>
+  <span class="label" id="label"></span>
+  <button id="next" title="Next (→)">→</button>
+  <button id="req" title="Cycle requirements placement"></button>
+</div>
+<script>
+  const VARIANTS = { A:'Amber phosphor', E:'Pink (A + #ff0076)', B:'Tokyo Night', C:'Ayu Dark', D:'Ayu Mirage' };
+  const keys = Object.keys(VARIANTS);
+  const [hv, hr] = location.hash.slice(1).split('-');
+  let current = keys.includes(hv) ? hv : 'A';
+  const REQS = ['band', 'hero', 'strip'];
+  let req = REQS.includes(hr) ? hr : 'band';
+  function render() {
+    document.documentElement.dataset.variant = current;
+    document.documentElement.dataset.req = req;
+    document.getElementById('label').textContent = current + ' — ' + VARIANTS[current];
+    document.getElementById('req').textContent = 'requires: ' + req;
+  }
+  function step(d) { current = keys[(keys.indexOf(current) + d + keys.length) % keys.length]; render(); }
+  document.getElementById('prev').onclick = () => step(-1);
+  document.getElementById('next').onclick = () => step(1);
+  document.getElementById('req').onclick = () => { req = REQS[(REQS.indexOf(req) + 1) % REQS.length]; render(); };
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, textarea, [contenteditable]')) return;
+    if (e.key === 'ArrowLeft') step(-1);
+    if (e.key === 'ArrowRight') step(1);
+  });
+  document.querySelectorAll('.copy-install').forEach(b => b.onclick = () => {
+    const code = b.previousElementSibling;
+    navigator.clipboard.writeText(code.textContent)
+      .then(() => { b.textContent = 'copied'; setTimeout(() => { b.textContent = 'copy'; }, 1500); })
+      .catch(() => getSelection().selectAllChildren(code));
+  });
+  render();
+</script>
