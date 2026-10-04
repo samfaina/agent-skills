@@ -1,0 +1,24 @@
+// The only colour scheme: dark, built from the tokens in custom/setup.scss.
+
+$color-scheme: dark;
+$body-background-color: $as-bg;
+$body-heading-color: $as-fg;
+$body-text-color: $as-fg;
+$link-color: $as-accent;
+$nav-child-link-color: $as-fg-muted;
+$sidebar-color: $as-bg;
+$base-button-color: $as-bg-raised;
+$btn-primary-color: $as-accent;
+$code-background-color: $as-bg-inset;
+$code-linenumber-color: $as-fg-faint;
+$feedback-color: $as-bg-hover;
+$table-background-color: $as-bg;
+$search-background-color: $as-bg-inset;
+$search-result-preview-color: $as-fg-muted;
+$border-color: $as-border;
+$grey-dk-000: $as-fg-faint;
+$grey-dk-100: $as-fg-muted;
+
+// Replaces the light syntax theme that the light scheme already emitted;
+// custom/custom.scss then recolours its main tokens from the palette.
+@import "./vendor/OneDarkJekyll/syntax";

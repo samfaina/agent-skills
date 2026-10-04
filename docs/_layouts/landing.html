@@ -1,0 +1,41 @@
+---
+layout: null
+---
+{%- comment -%}
+  Hand-built landing page (see docs/adr/0001-hand-built-landing-on-just-the-docs.md).
+  It skips just-the-docs' stylesheet and layout but loads its JavaScript, so the
+  shared header search runs on the theme's own search. Check the header and the
+  search here whenever the theme version changes.
+{%- endcomment -%}
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: 'en-US' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ '/assets/css/landing.css' | relative_url }}">
+  {%- if site.search_enabled != false %}
+  <script src="{{ '/assets/js/vendor/lunr.min.js' | relative_url }}"></script>
+  {%- endif %}
+  <script src="{{ '/assets/js/just-the-docs.js' | relative_url }}"></script>
+  {% seo %}
+  {% include head_custom.html %}
+</head>
+<body class="landing">
+  <a class="skip-to-main" href="#main-content">Skip to main content</a>
+  {% include icons/icons.html %}
+  {% include components/header.html %}
+  <main id="main-content">
+    {{ content }}
+  </main>
+  <footer class="landing-footer">
+    <div class="wrap">
+      <span><span class="mono">agent-skills</span> · a Claude Code plugin by samfaina</span>
+      <nav aria-label="Footer">
+        <a href="{{ site.gh_edit_repository }}/{{ site.gh_edit_view_mode }}/{{ site.gh_edit_branch }}/{{ site.gh_edit_source }}/{{ page.path }}" target="_blank" rel="noopener">{{ site.gh_edit_link_text }}</a>
+        <a href="{{ site.gh_edit_repository }}/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="{{ site.gh_edit_repository }}" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

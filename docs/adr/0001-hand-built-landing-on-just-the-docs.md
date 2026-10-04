@@ -10,4 +10,4 @@ The docs site stays on Jekyll with the just-the-docs remote theme, built by GitH
 
 ## Consequences
 
-The landing layout doesn't follow just-the-docs upgrades on its own: bumping the theme version means checking that the shared header and the search still work on the landing page.
+The landing layout doesn't follow just-the-docs upgrades on its own: bumping the theme version means checking that the shared header and the search still work on the landing page. The inner pages carry part of that risk too, because they replace the theme's `components/header.html` and `components/sidebar.html` with the shared header and a sidebar without its own title.
