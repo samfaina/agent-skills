@@ -70,7 +70,7 @@ kbd,
 
 code {
   font-size: 0.9em;
-  color: $as-fg;
+  color: $as-accent-pale;
 }
 
 b {
@@ -397,6 +397,7 @@ svg.d-none,
     padding: 9px 14px;
     overflow-x: auto;
     font-size: 13px;
+    color: $as-fg;
     white-space: pre;
   }
 }
