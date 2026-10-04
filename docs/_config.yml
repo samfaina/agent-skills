@@ -24,3 +24,7 @@ gh_edit_source: docs
 gh_edit_view_mode: edit
 
 footer_content: "agent-skills, a Claude Code plugin by samfaina."
+
+exclude:
+  - agents
+  - adr
