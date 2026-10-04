@@ -13,17 +13,17 @@ Both shipping skills run the same loop, written for the agent in [`shared/ship-t
 
 ```mermaid
 flowchart TD
-    start([Start]) --> pick[1. Pick the next ready ticket]
+    start([Start]) --> pick[1#46; Pick the next ready ticket]
     pick -->|none left| report([Final report])
-    pick --> wt[2. Create the ticket's worktree]
-    wt --> impl[3. Implement worker]
-    impl --> pr[4. PR worker]
-    pr --> ci{5. CI}
-    ci -->|green, or CI: none| merge[6. Merge]
+    pick --> wt[2#46; Create the ticket's worktree]
+    wt --> impl[3#46; Implement worker]
+    impl --> pr[4#46; PR worker]
+    pr --> ci{5#46; CI}
+    ci -->|green, or CI: none| merge[6#46; Merge]
     ci -->|red, up to 2 times| fix[Fix worker]
     fix --> ci
     merge -->|reviewed: request changes| fix
-    merge --> clean[7. Clean up]
+    merge --> clean[7#46; Clean up]
     clean --> pick
 ```
 
