@@ -5,17 +5,12 @@ html {
 }
 
 // ── The shared header is fixed across the top, above the sidebar and the content ──
+// Its bar keeps the landing page's width and padding, so the header doesn't move between pages.
 
 .site-top--docs {
   position: fixed;
   right: 0;
   left: 0;
-
-  .site-top-bar {
-    max-width: $nav-width + $content-width;
-
-    @include container;
-  }
 }
 
 .side-bar {
