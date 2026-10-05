@@ -41,10 +41,12 @@ When a ticket can't be finished, the loop stops and leaves its worktree and PR a
 
 | Path | Contents |
 | --- | --- |
-| `skills/` | One folder per skill, each with its `SKILL.md` and an `agents/openai.yaml` for Codex. Every skill is user-invoked: `disable-model-invocation: true` in the frontmatter and `allow_implicit_invocation: false` in the YAML must change together. |
+| `skills/` | One folder per skill, each with its `SKILL.md` and an `agents/openai.yaml` for Codex CLI. |
 | `shared/ship-tickets-loop.md` | The loop both shipping skills run, with the specs sent to each worker. |
 | `shared/shipping-template.md` | The format of `docs/agents/shipping.md`. |
 | `docs/` | The documentation site, published with GitHub Pages. |
+
+Every skill is user-invoked. Codex CLI ignores `disable-model-invocation: true` in `SKILL.md` and reads `allow_implicit_invocation: false` in `agents/openai.yaml` instead, so change the two together.
 
 ## Local development
 
