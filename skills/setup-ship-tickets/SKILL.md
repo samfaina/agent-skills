@@ -1,12 +1,14 @@
 ---
 name: setup-ship-tickets
-description: Check that a repo is ready for /ship-tickets and open a PR with its docs/agents/shipping.md, filled from the repo's settings and history.
+description: Check that a repo is ready for the ship-tickets skill and open a PR with its docs/agents/shipping.md, filled from the repo's settings and history.
 disable-model-invocation: true
 ---
 
 # Set up ship tickets
 
-Prepares the current repo for `/ship-tickets`. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file.
+Run this skill only when the user invoked it by name. If you reached it any other way, stop and tell the user to run `setup-ship-tickets` themselves.
+
+Prepares the current repo for the `ship-tickets` skill. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file.
 
 The format is `shipping-template.md`, in this skill's own folder. Read it before step 2: every field it lists gets a value, and the file you write keeps its structure.
 
@@ -17,9 +19,9 @@ Run each check and record pass or fail with the evidence:
 | Check | How |
 | --- | --- |
 | `gh` is authenticated and the repo resolves | `gh repo view --json nameWithOwner,defaultBranchRef,mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed,deleteBranchOnMerge` |
-| `orca` resolves | as the `orchestration` skill says |
+| `orca` resolves on `PATH` and serves Orca's orchestration guide | `command -v orca` in POSIX shells, `(Get-Command orca).Source` in PowerShell; on Windows it must be `orca.exe`, not `orca.cmd`. Then `orca skills get orchestration` prints the guide |
 | This session runs inside an Orca terminal | `ORCA_TERMINAL_HANDLE` is set |
-| Workers can use `tdd` and `code-review` | `mattpocock-skills:tdd` and `mattpocock-skills:code-review` are in your skill list |
+| Workers can use Matt Pocock's `tdd` and `code-review` skills | `tdd` and `code-review` are in your skill list; in Claude Code, `mattpocock-skills:tdd` and `mattpocock-skills:code-review`, since its built-in `code-review` is a different skill |
 | The `ready-for-agent` label exists | `ready-for-agent` is an exact line of `gh label list --search ready-for-agent --json name --jq '.[].name'` (the search is fuzzy) |
 
 A missing label is the one failure you fix here: offer to create it with `gh label create ready-for-agent`. Report the other failures with the fix the user needs; they block the loop, not this setup, so carry on.
@@ -43,7 +45,7 @@ For each field, take the value from the first source that settles it:
 | PR title and body | `.github/pull_request_template.md` (or `.github/PULL_REQUEST_TEMPLATE/`) if present; otherwise the sections the last merged PRs share (`gh pr view <n> --json title,body`) |
 | Workers | no repo setting covers it, so it stays unsettled; the inferred value is `claude` for all roles |
 
-A field is **settled** when one source gives one clear answer. Collect the unsettled ones, plus any inference resting on fewer than three examples, and ask about them with AskUserQuestion (four questions per call at most), each question offering the inferred value first.
+A field is **settled** when one source gives one clear answer. Collect the unsettled ones, plus any inference resting on fewer than three examples, and ask the user about them, each question offering the inferred value first. Wait for the answers; if your harness has a structured question tool, use it.
 
 Ask about Workers in two rounds. First ask whether every worker role uses the same agent or each role gets its own. Then ask for the Orca agent id: one question for all roles, or one per role. `orca orchestration worker-start --help` lists the ids Orca knows, such as `codex` and `opencode`.
 
@@ -53,7 +55,7 @@ Done when every field in the template holds a value and the user has confirmed e
 
 Work in a separate worktree, so the user's checkout stays as it is:
 
-```bash
+```text
 git worktree add <tmp-dir> -b agents/shipping-config origin/<default>
 ```
 
@@ -65,5 +67,5 @@ Done when the PR is open and the worktree is removed.
 
 ## Report
 
-- The PR URL. `/ship-tickets` can run once it merges.
+- The PR URL. `ship-tickets` can run once it merges.
 - Each preflight failure still open, with the fix the user needs.
