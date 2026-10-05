@@ -8,6 +8,7 @@ Read by `/ship-tickets` (samfaina/agent-skills). Run `/setup-ship-tickets` to fi
 - **Branch naming:** how to derive the worktree `--name` from the ticket, e.g. kebab-case issue title. Note any prefix Orca adds to the branch.
 - **After merge:** e.g. "delete the remote branch with `git push origin --delete <branch>`", or "nothing".
 - **CI:** `required` (PRs get checks, and the loop waits for them to pass) | `none` (no checks run on PRs, and the loop merges without waiting)
+- **Workers:** the Orca agent id each worker starts in (passed to `worker-start --agent`). One id for every role, e.g. `claude` (all roles), or one per role, e.g. implement `claude`, PR `opencode`, fix `claude`.
 
 ## PR format
 
