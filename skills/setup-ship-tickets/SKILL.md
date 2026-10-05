@@ -6,9 +6,9 @@ disable-model-invocation: true
 
 # Set up ship tickets
 
-Prepares the current repo for `/ship-tickets` and `/ship-tickets-reviewed`. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file.
+Prepares the current repo for `/ship-tickets`. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file.
 
-The format is `shared/shipping-template.md`, two levels above this skill's base directory. Read it before step 2: every field it lists gets a value, and the file you write keeps its structure.
+The format is `shipping-template.md`, in this skill's own folder. Read it before step 2: every field it lists gets a value, and the file you write keeps its structure.
 
 ## 1. Preflight
 
@@ -28,7 +28,7 @@ Done when every check has a recorded result.
 
 ## 2. Gather
 
-`git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`. If the file exists, this is an **update**: keep every value it sets and gather only the fields it lacks or that contradict the repo settings from step 1.
+`git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`. If the file exists, this is an **update**: keep every value it sets and gather only the fields it lacks or that contradict the repo settings from step 1. A file written before Merge approval existed lacks that field, so the update adds it.
 
 For each field, take the value from the first source that settles it:
 
@@ -36,6 +36,7 @@ For each field, take the value from the first source that settles it:
 | --- | --- |
 | Base branch | `defaultBranchRef` |
 | Merge method | the one method `mergeCommitAllowed` / `squashMergeAllowed` / `rebaseMergeAllowed` allows; with several allowed, it stays unsettled |
+| Merge approval | no repo setting settles it: always ask, proposing `ask` |
 | Branch naming | the pattern in `gh pr list --state all --limit 30 --json headRefName` |
 | After merge | `deleteBranchOnMerge: true` → "nothing"; otherwise delete the remote branch |
 | CI | `pull_request` triggers in `.github/workflows/`, plus `gh pr view <recent-pr> --json statusCheckRollup` on two or three recent PRs to catch external checks. Checks found → `required`; none → `none` |
