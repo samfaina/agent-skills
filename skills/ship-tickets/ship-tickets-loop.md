@@ -9,7 +9,7 @@ You are the **coordinator**: you own the ticket order, the CI wait and the merge
 3. Resolve the **ticket set**: the issue numbers from the arguments or, with none, every open issue labelled `ready-for-agent`.
 4. Resolve the **merge approval**, `ask` or `auto`: the override from the arguments when the user gave one, otherwise the **Merge approval** field in `shipping.md`. A file without the field means `ask`.
 5. Resolve the **worker agents** from the **Workers** field in `shipping.md`: one Orca agent id for each role: implement, PR and fix. A single id applies to all three roles, and a role the field leaves out gets `claude`. A file without the field means `claude` for all roles.
-6. Check that the implement agent will load Matt Pocock's `tdd` and `code-review`: run the provenance check in `skill-provenance.md`, in this skill's own folder, for that agent. On a fail, stop before the first ticket and report the skill and its path. On a warning, go on only once the user confirms. Keep the resolved folders: step 3 compares the worker's report with them.
+6. Check that the implement agent will load Matt Pocock's `tdd` and `code-review`: run the provenance check in `skill-provenance.md`, in this skill's own folder, for that agent. On a fail, stop before the first ticket and report the skill and its path. Keep the resolved folders: each ticket's step 3 (Implement worker) compares the worker's report with them.
 7. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
 
 Done when the guide is loaded, `shipping.md` is read, the ticket set is a list of numbers, the merge approval is `ask` or `auto`, each worker role has an agent id, `tdd` and `code-review` each have a resolved folder, and a Run is bound.
@@ -105,15 +105,14 @@ Done when the PR is merged, the ticket is closed, the worktree is removed and no
 
 Stop the loop and leave the ticket's worktree and PR exactly as they are when:
 
-- the provenance check fails before the first ticket (no ticket has started, so there is nothing to leave);
-- a worker settles with `--outcome failed`, or its result fails the acceptance check of its step, including a `tdd` or `code-review` loaded from a folder other than the one the provenance check resolved;
+- a worker settles with `--outcome failed`, or its result fails the acceptance check of its step;
 - CI is red after 2 fix workers, or no check starts within 10 minutes;
 - `worker-start` exits non-zero (follow its receipt and the recovery reference, and launch no duplicate);
 - the user picks **Stop** at step 6.
 
 ## Final report
 
-Per ticket in the set: **merged** (PR link), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it).
+Per ticket in the set: **merged** (PR link), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it, or the failed provenance check).
 
 ## Specs
 
@@ -136,7 +135,7 @@ Constraints: follow the repo's agent instruction files (AGENTS.md, CLAUDE.md and
 
 Ownership: this worktree and its branch.
 
-Observable acceptance: every acceptance criterion in #<n> is met, the full test suite passes, and the work is committed with a clean working tree. The worker_done summary gives the base directory of the `tdd` skill and of the `code-review` skill you loaded (the folder holding each SKILL.md, as your harness reported it when the skill loaded).
+Observable acceptance: every acceptance criterion in #<n> is met, the full test suite passes, and the work is committed with a clean working tree. The worker_done summary gives the base directory of the `tdd` skill and of the `code-review` skill you loaded: the folder holding each SKILL.md, as your harness reported it when the skill loaded, or else the folder of the SKILL.md you read.
 ```
 
 ### PR spec

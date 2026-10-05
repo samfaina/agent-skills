@@ -19,16 +19,16 @@ The default branch on the remote doesn't have the file. Run `/setup-ship-tickets
 
 Every ticket left in the set has an open blocker. The report names them. Ship or close the blockers, or include them in the set.
 
-## "Workers would load a different tdd or code-review"
+## Workers would load a different `tdd` or `code-review`
 
 The check before the first ticket found that the implement worker's agent would load a `tdd` or `code-review` that isn't from [mattpocock/skills](https://github.com/mattpocock/skills). The report names the skill and its path.
 
-- **Claude Code:** install the plugin, either from Matt's marketplace (`/plugin marketplace add mattpocock/skills`) or from the official one.
+- **Claude Code:** install the plugin from Matt's marketplace (`/plugin marketplace add mattpocock/skills`, then `/plugin install mattpocock-skills@mattpocock`) or from the official one (`/plugin install mattpocock-skills@claude-plugins-official`).
 - **OpenCode:** it doesn't read Claude Code plugins. Run `npx skills add mattpocock/skills`. If OpenCode finds two skills with the same name, remove the one that isn't Matt's, because OpenCode may load either.
 
 If the skills came from a `git clone` or another place with no install record, the check can only compare their content, so it asks you to confirm the paths before the loop goes on.
 
-If an implement worker loaded a different copy than the check found, the loop stops at that ticket and reports both paths.
+If an implement worker loaded a different copy than the check found, the loop stops at that ticket and reports both paths. A plugin update during the run moves the Claude Code skills to a new versioned folder and also stops the loop this way. If both paths are Matt's, run the skill again.
 
 ## A worker failed
 
