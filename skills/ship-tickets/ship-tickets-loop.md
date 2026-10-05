@@ -1,17 +1,16 @@
 # Ship tickets: the loop
 
-Shared by `/ship-tickets` and `/ship-tickets-reviewed`. They differ only at step 6, **Merge**, and each skill says what to do there.
-
 You are the **coordinator**: you own the ticket order, the CI wait and the merge. **Workers** are fresh Orca agents. Each does one job in the ticket's worktree and settles with `worker_done`. Tickets ship **one at a time**, so each one starts from the base branch the previous one merged into.
 
 ## Before the first ticket
 
 1. Load Orca's orchestration guide with `orca skills get orchestration`, resolving the executable as the `orchestration` skill says. The guide is the source of truth for every `orca orchestration` command below and for its safety floor: an empty or timed-out wait is a checkpoint, and only an accepted `worker_done` authorizes `worker-release`. Before any stop, abandon or retry, load its `references/recovery-and-cleanup.md`.
-2. Read `docs/agents/shipping.md` as the remote default branch holds it, so the loop runs the same from any worktree: `git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`, where `<default>` comes from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. It sets the base branch, merge method, branch naming, CI, PR format and post-merge cleanup. If the default branch lacks the file, stop and tell the user to run `/setup-ship-tickets` and merge the PR it opens.
-3. Resolve the **ticket set**: the issue numbers the user passed or, with none, every open issue labelled `ready-for-agent`.
-4. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
+2. Read `docs/agents/shipping.md` as the remote default branch holds it, so the loop runs the same from any worktree: `git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`, where `<default>` comes from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. It sets the base branch, merge method, merge approval, branch naming, CI, PR format and post-merge cleanup. If the default branch lacks the file, stop and tell the user to run `/setup-ship-tickets` and merge the PR it opens.
+3. Resolve the **ticket set**: the issue numbers from the arguments or, with none, every open issue labelled `ready-for-agent`.
+4. Resolve the **merge approval**, `ask` or `auto`: the override from the arguments when the user gave one, otherwise the **Merge approval** field in `shipping.md`. A file without the field means `ask`.
+5. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
 
-Done when the guide is loaded, `shipping.md` is read, the ticket set is a list of numbers, and a Run is bound.
+Done when the guide is loaded, `shipping.md` is read, the ticket set is a list of numbers, the merge approval is `ask` or `auto`, and a Run is bound.
 
 ## For each ticket
 
@@ -70,7 +69,15 @@ The loop covers the first minutes after a push, when GitHub lists no checks yet.
 
 ### 6. Merge
 
-Do what the running skill says. Then confirm the merge closed the ticket: `gh issue view <n> --json state`. If it is still open, `gh issue close <n> --comment "Shipped in #<pr>"`.
+Merge with the merge method from `shipping.md`: `gh pr merge <pr> --<method>`. The merge approval from "Before the first ticket" decides whether the user approves it first:
+
+- **`auto`** → merge now.
+- **`ask`** → show the user the PR URL, its title and its size (`gh pr view <pr> --json url,title,additions,deletions,changedFiles`), then ask them to pick one, with AskUserQuestion where your harness has it:
+  - **Merge** → merge.
+  - **Request changes** → take the user's notes as the reason for a fix worker, then run steps 5 and 6 again. Review rounds are unlimited; the cap of 2 counts CI fixes only.
+  - **Stop** → leave the PR open and end the loop.
+
+Once merged, confirm the merge closed the ticket: `gh issue view <n> --json state`. If it is still open, `gh issue close <n> --comment "Shipped in #<pr>"`.
 
 ### 7. Clean up
 
@@ -87,7 +94,7 @@ Stop the loop and leave the ticket's worktree and PR exactly as they are when:
 - a worker settles with `--outcome failed`, or its result fails the acceptance check of its step;
 - CI is red after 2 fix workers;
 - `worker-start` exits non-zero (follow its receipt and the recovery reference, and launch no duplicate);
-- the running skill's merge step says to stop.
+- the user picks **Stop** at step 6.
 
 ## Final report
 

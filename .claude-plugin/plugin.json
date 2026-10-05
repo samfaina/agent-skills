@@ -1,6 +1,6 @@
 {
   "name": "agent-skills",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Sam Faina's agent skills: shipping GitHub tickets with supervised Orca workers.",
   "author": {
     "name": "samfaina"
@@ -8,7 +8,6 @@
   "repository": "https://github.com/samfaina/agent-skills",
   "skills": [
     "./skills/setup-ship-tickets",
-    "./skills/ship-tickets",
-    "./skills/ship-tickets-reviewed"
+    "./skills/ship-tickets"
   ]
 }
