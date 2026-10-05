@@ -13,23 +13,33 @@ nav_order: 2
 
 | What | Why |
 | --- | --- |
-| [Claude Code](https://github.com/anthropics/claude-code) | Runs the skills. Your session is the coordinator. |
+| A [harness](harnesses) | Runs the skills, such as Claude Code or OpenCode. Your session is the coordinator. |
 | [Orca](https://github.com/stablyai/orca) | Gives each ticket its own worktree and runs the workers. Start the coordinator session from an Orca terminal. |
 | [GitHub CLI](https://cli.github.com/) | Reads issues, opens and merges PRs, watches CI. Run `gh auth login` first. |
-| [mattpocock-skills](https://github.com/mattpocock/skills) | Workers build with its `tdd` skill and review with `code-review`. |
+| [mattpocock/skills](https://github.com/mattpocock/skills) | Workers build with its `tdd` skill and review with `code-review`. |
 
 `/setup-ship-tickets` checks each of these for you.
 
-## Install the plugin
+## Install the skills
+
+In Claude Code, install the plugin:
 
 ```
 /plugin marketplace add samfaina/agent-skills
 /plugin install agent-skills@samfaina
 ```
 
+In any other harness, install with [skills.sh](https://skills.sh/):
+
+```
+npx skills add samfaina/agent-skills
+```
+
+Use one or the other in a given harness, not both, or every skill shows up twice. Install Matt Pocock's skills the same way in each harness your workers run in. [Harnesses](harnesses#install) has the commands for each harness.
+
 ## Set up a repo
 
-Open a Claude Code session in an Orca terminal, inside the repo, and run:
+Open a session in an Orca terminal, inside the repo, and run:
 
 ```
 /setup-ship-tickets
@@ -37,13 +47,13 @@ Open a Claude Code session in an Orca terminal, inside the repo, and run:
 
 It works in three steps.
 
-1. **Preflight.** It checks that `gh` is logged in, that Orca is reachable, that the session runs in an Orca terminal, and that the repo has a `ready-for-agent` label. It offers to create the label. Anything else that fails is reported with the fix, and setup carries on.
-2. **Gather.** It fills in every field of [`shipping.md`](shipping-md) from what the repo already says: allowed merge methods, the auto-delete-branch setting, CI workflows and recent check runs, past branch names, the PR template or recent PR bodies. You get asked only about the fields it can't settle, with its best guess as the first option. Once it knows which agent runs the implement worker, it checks that the agent will load the `tdd` and `code-review` from [mattpocock/skills](https://github.com/mattpocock/skills) and not another skill with the same name.
+1. **Preflight.** It checks that `gh` is logged in, that `orca` is on your `PATH` and serves its orchestration guide, that the session runs in an Orca terminal, and that the repo has a `ready-for-agent` label. It offers to create the label. Anything else that fails is reported with the fix, and setup carries on.
+2. **Gather.** It fills in every field of [`shipping.md`](shipping-md) from what the repo already says: allowed merge methods, the auto-delete-branch setting, CI workflows and recent check runs, past branch names, the PR template or recent PR bodies. It asks you about the fields it can't settle, with its best guess as the first option. Two of them no repo setting covers: **Merge approval** (it proposes `ask`) and **Workers**, the harness each worker runs in (it proposes `claude`). Once it knows which harness runs the implement worker, it checks that the worker will load the `tdd` and `code-review` from mattpocock/skills and not another skill with the same name. [Harnesses](harnesses#workers) explains the check.
 3. **Open the PR.** It writes `docs/agents/shipping.md` in a separate worktree, so your checkout isn't touched, and shows it to you. Once you approve, it opens a PR.
 
 **Merge that PR.** The loop always reads `shipping.md` from the remote default branch, so it runs the same from any worktree, and it won't start until the file is there.
 
-Running `/setup-ship-tickets` again later updates the file: it keeps the values you have and fills in fields it lacks, such as ones added in newer plugin versions.
+Running `/setup-ship-tickets` again later updates the file: it keeps the values you have and fills in fields it lacks, such as ones added in newer versions of the skills.
 
 ## Write tickets the loop can ship
 
@@ -57,20 +67,16 @@ Label the ones that are ready `ready-for-agent`, or pass issue numbers to the sk
 
 ## Ship
 
-Start with the reviewed variant:
-
 ```
-/ship-tickets-reviewed
+/ship-tickets
 ```
 
-After CI goes green on each PR, it shows you the PR link, title and size, and asks you to **Merge**, **Request changes** (a fix worker takes your notes, then CI runs again) or **Stop**.
+With **Merge approval** set to `ask`, the default, the loop stops after CI goes green on each PR. It shows you the PR link, title and size, and asks you to **Merge**, **Request changes** (a fix worker takes your notes, then CI runs again) or **Stop**. Once you trust the loop on a repo, set `Merge approval: auto` in `shipping.md` and it merges as soon as CI is green.
 
-Once you trust the loop on a repo, switch to `/ship-tickets`, which merges as soon as CI is green.
-
-Either way, you can pass specific tickets:
+A first word of `ask` or `auto` overrides the field for one run, and issue numbers pick the tickets:
 
 ```
-/ship-tickets 41 42 47
+/ship-tickets auto 41 42 47
 ```
 
-The coordinator still orders them by their blockers. At the end it reports each ticket as **merged** (with the PR link), **stopped** (where, why and what you need to do) or **not started** (the blockers holding it).
+The coordinator still orders the tickets by their blockers. At the end it reports each ticket as **merged** (with the PR link), **stopped** (where, why and what you need to do) or **not started** (the blockers holding it).

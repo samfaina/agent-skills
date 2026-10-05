@@ -11,12 +11,13 @@
 <header id="main-header" class="site-top site-top--{{ header_kind }}">
   <div class="site-top-bar">
     <a class="site-brand" href="{{ '/' | relative_url }}"><span class="site-mark" aria-hidden="true">&gt;_</span>agent-skills</a>
-    <span class="site-chip">Claude Code plugin</span>
+    <span class="site-chip">SKILL.md skills</span>
     <div class="site-top-menu" id="site-top-menu">
       <nav class="site-top-links" aria-label="Site">
         <a href="{{ '/getting-started' | relative_url }}"{% if page.url contains "/getting-started" %} aria-current="page"{% endif %}>Getting started</a>
         <a href="{{ '/how-it-works' | relative_url }}"{% if page.url contains "/how-it-works" %} aria-current="page"{% endif %}>How it works</a>
         <a href="{{ '/shipping-md' | relative_url }}"{% if page.url contains "/shipping-md" %} aria-current="page"{% endif %}>shipping.md</a>
+        <a href="{{ '/harnesses' | relative_url }}"{% if page.url contains "/harnesses" %} aria-current="page"{% endif %}>Harnesses</a>
         <a href="{{ '/troubleshooting' | relative_url }}"{% if page.url contains "/troubleshooting" %} aria-current="page"{% endif %}>Troubleshooting</a>
         <a class="site-top-external" href="{{ site.gh_edit_repository }}" target="_blank" rel="noopener">GitHub</a>
       </nav>

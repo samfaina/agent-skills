@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-nav_order: 5
+nav_order: 6
 ---
 
 # Troubleshooting
@@ -10,6 +10,14 @@ When the loop can't finish a ticket, it stops and leaves that ticket's worktree 
 
 1. TOC
 {:toc}
+
+## The harness doesn't find `/ship-tickets`
+
+The skills aren't installed for the harness you're running. Claude Code loads them from the plugin, and every other harness from `npx skills add samfaina/agent-skills`. OpenCode doesn't read Claude Code plugins, so a plugin install alone leaves it without the skills. See [Install](harnesses#install).
+
+## Every skill shows up twice
+
+The skills are installed twice in the same harness, usually once through the plugin and once through `npx skills add`. Remove one of them: `/plugin uninstall agent-skills@samfaina` in Claude Code, or `npx skills remove` for the skills.sh copy.
 
 ## "docs/agents/shipping.md is missing"
 
@@ -21,14 +29,20 @@ Every ticket left in the set has an open blocker. The report names them. Ship or
 
 ## Workers would load a different `tdd` or `code-review`
 
-The check before the first ticket found that the implement worker's agent would load a `tdd` or `code-review` that isn't from [mattpocock/skills](https://github.com/mattpocock/skills). The report names the skill and its path.
+The provenance check, which `/setup-ship-tickets` runs and `/ship-tickets` runs again before the first ticket, found that the implement worker's harness would load a `tdd` or `code-review` that isn't from [mattpocock/skills](https://github.com/mattpocock/skills). The report names the skill and its path.
 
 - **Claude Code:** install the plugin from Matt's marketplace (`/plugin marketplace add mattpocock/skills`, then `/plugin install mattpocock-skills@mattpocock`) or from the official one (`/plugin install mattpocock-skills@claude-plugins-official`).
-- **OpenCode:** it doesn't read Claude Code plugins. Run `npx skills add mattpocock/skills`. If OpenCode finds two skills with the same name, remove the one that isn't Matt's, because OpenCode may load either.
+- **OpenCode:** it doesn't read Claude Code plugins. Run `npx skills add mattpocock/skills --agent opencode`. If OpenCode finds two skills with the same name, remove the one that isn't Matt's, because OpenCode may load either.
 
-If the skills came from a `git clone` or another place with no install record, the check can only compare their content, so it asks you to confirm the paths before the loop goes on.
+If the skills came from a `git clone` or another place with no install record, the check can only compare their content, so it asks you to confirm the paths before the loop goes on. Declining counts as a failure.
 
 If an implement worker loaded a different copy than the check found, the loop stops at that ticket and reports both paths. A plugin update during the run moves the Claude Code skills to a new versioned folder and also stops the loop this way. If both paths are Matt's, run the skill again.
+
+[Harnesses](harnesses#the-skill-provenance-check) explains what the check looks at in each harness.
+
+## A worker is missing `tdd` or `code-review`
+
+The implement worker couldn't load one of Matt's skills and settled as failed, naming it. Install mattpocock/skills in the harness that **Workers** names for the implement role, as [Install](harnesses#install) shows for each harness, then run the skill again.
 
 ## A worker failed
 
@@ -44,11 +58,19 @@ Two fix workers couldn't get CI green. The PR stays open with the last attempt. 
 
 ## CI never starts
 
-If no checks run on PRs in this repo, set `CI: none` in `shipping.md` (see the [reference](shipping-md#why-ci-none-exists)). Otherwise, check that your workflows trigger on `pull_request` for the base branch.
+No check started within 10 minutes of the PR opening. If no checks run on PRs in this repo, set `CI: none` in `shipping.md` (see the [reference](shipping-md#why-ci-none-exists)). Otherwise, check that your workflows trigger on `pull_request` for the base branch.
 
 ## A worker couldn't be started
 
-`worker-start` failed. The coordinator follows Orca's recovery guide and doesn't launch a duplicate. Check that Orca is running and that the session is in an Orca terminal, then run the skill again.
+`worker-start` failed. The coordinator follows Orca's recovery guide and doesn't launch a duplicate. Check that Orca is running, that the session is in an Orca terminal, and that the agent id in **Workers** is one `orca orchestration worker-start --help` lists. Then run the skill again.
+
+## A worker's spec arrives cut short
+
+On Windows, `orca` resolved to `orca.cmd`, which cuts a multi-line spec at its first newline. The coordinator should call `orca.exe` instead; if it didn't, put the folder holding `orca.exe` ahead on your `PATH`. In PowerShell older than 7.3 the spec also loses its double quotes, so use PowerShell 7.3 or later. See [Shell](harnesses#shell).
+
+## The loop asks before every merge
+
+**Merge approval** is `ask`, which is also what a `shipping.md` without the field gets. To merge as soon as CI is green, set `Merge approval: auto` in `shipping.md`, or run `/ship-tickets auto` for one run.
 
 ## You chose Stop
 
