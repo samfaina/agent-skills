@@ -1,0 +1,13 @@
+{
+  "name": "strkit",
+  "version": "0.1.0",
+  "description": "A tiny string library, used to test the ship-tickets loop.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}
