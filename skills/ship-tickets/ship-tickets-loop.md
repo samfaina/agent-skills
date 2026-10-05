@@ -5,12 +5,13 @@ You are the **coordinator**: you own the ticket order, the CI wait and the merge
 ## Before the first ticket
 
 1. Load Orca's orchestration guide with `orca skills get orchestration`, resolving the executable as the `orchestration` skill says. The guide is the source of truth for every `orca orchestration` command below and for its safety floor: an empty or timed-out wait is a checkpoint, and only an accepted `worker_done` authorizes `worker-release`. Before any stop, abandon or retry, load its `references/recovery-and-cleanup.md`.
-2. Read `docs/agents/shipping.md` as the remote default branch holds it, so the loop runs the same from any worktree: `git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`, where `<default>` comes from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. It sets the base branch, merge method, merge approval, branch naming, CI, PR format and post-merge cleanup. If the default branch lacks the file, stop and tell the user to run `/setup-ship-tickets` and merge the PR it opens.
+2. Read `docs/agents/shipping.md` as the remote default branch holds it, so the loop runs the same from any worktree: `git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`, where `<default>` comes from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. It sets the base branch, merge method, merge approval, branch naming, CI, workers, PR format and post-merge cleanup. If the default branch lacks the file, stop and tell the user to run `/setup-ship-tickets` and merge the PR it opens.
 3. Resolve the **ticket set**: the issue numbers from the arguments or, with none, every open issue labelled `ready-for-agent`.
 4. Resolve the **merge approval**, `ask` or `auto`: the override from the arguments when the user gave one, otherwise the **Merge approval** field in `shipping.md`. A file without the field means `ask`.
-5. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
+5. Resolve the **worker agents** from the **Workers** field in `shipping.md`: one Orca agent id for each role: implement, PR and fix. A single id applies to all three roles, and a role the field leaves out gets `claude`. A file without the field means `claude` for all roles.
+6. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
 
-Done when the guide is loaded, `shipping.md` is read, the ticket set is a list of numbers, the merge approval is `ask` or `auto`, and a Run is bound.
+Done when the guide is loaded, `shipping.md` is read, the ticket set is a list of numbers, the merge approval is `ask` or `auto`, each worker role has an agent id, and a Run is bound.
 
 ## For each ticket
 
@@ -32,7 +33,7 @@ orca worktree create --name <slug> --issue <n> --base-branch origin/<base> --jso
 ### 3. Implement worker
 
 ```bash
-orca orchestration worker-start --worktree issue:<n> --agent claude --task-title "#<n> implement" --spec "$(cat <<'SPEC'
+orca orchestration worker-start --worktree issue:<n> --agent <implement agent> --task-title "#<n> implement" --spec "$(cat <<'SPEC'
 <implement spec>
 SPEC
 )" --json
@@ -46,7 +47,7 @@ Accept `--outcome succeeded` when `git -C <path> log origin/<base>..HEAD --oneli
 
 ### 4. PR worker
 
-A fresh agent in the same worktree: `worker-start --worktree issue:<n> --agent claude --task-title "#<n> PR"` with the PR spec. On an existing worktree Orca opens a new terminal, so this agent starts with an empty context.
+A fresh agent in the same worktree: `worker-start --worktree issue:<n> --agent <PR agent> --task-title "#<n> PR"` with the PR spec. On an existing worktree Orca opens a new terminal, so this agent starts with an empty context.
 
 Accept when the `worker_done` summary names a PR, `gh pr view <pr> --json headRefName,body` shows the ticket's branch, and the body contains `Closes #<n>`. Release and ack.
 
@@ -65,7 +66,7 @@ gh pr checks <pr> --watch --fail-fast --interval 30
 The loop covers the first minutes after a push, when GitHub lists no checks yet.
 
 - **Exit 0 (green)** → step 6.
-- **Non-zero (red)** → start a **fix worker** (spec below) in the same worktree with the CI failure as its reason, accept it when it reports the fix pushed, then run step 5 again. A ticket gets at most **2** fix workers for CI. After the third red run, stop the loop.
+- **Non-zero (red)** → start a **fix worker** in the same worktree: `worker-start --worktree issue:<n> --agent <fix agent> --task-title "#<n> fix"` with the fix spec and the CI failure as its reason. Accept it when it reports the fix pushed, then run step 5 again. A ticket gets at most **2** fix workers for CI. After the third red run, stop the loop.
 
 ### 6. Merge
 
@@ -74,7 +75,7 @@ Merge with the merge method from `shipping.md`: `gh pr merge <pr> --<method>`. T
 - **`auto`** → merge now.
 - **`ask`** → show the user the PR URL, its title and its size (`gh pr view <pr> --json url,title,additions,deletions,changedFiles`), then ask them to pick one, with AskUserQuestion where your harness has it:
   - **Merge** → merge.
-  - **Request changes** → take the user's notes as the reason for a fix worker, then run steps 5 and 6 again. Review rounds are unlimited; the cap of 2 counts CI fixes only.
+  - **Request changes** → start a fix worker as in step 5, with the user's notes as its reason, then run steps 5 and 6 again. Review rounds are unlimited; the cap of 2 counts CI fixes only.
   - **Stop** → leave the PR open and end the loop.
 
 Once merged, confirm the merge closed the ticket: `gh issue view <n> --json state`. If it is still open, `gh issue close <n> --comment "Shipped in #<pr>"`.

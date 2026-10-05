@@ -41,8 +41,11 @@ For each field, take the value from the first source that settles it:
 | After merge | `deleteBranchOnMerge: true` → "nothing"; otherwise delete the remote branch |
 | CI | `pull_request` triggers in `.github/workflows/`, plus `gh pr view <recent-pr> --json statusCheckRollup` on two or three recent PRs to catch external checks. Checks found → `required`; none → `none` |
 | PR title and body | `.github/pull_request_template.md` (or `.github/PULL_REQUEST_TEMPLATE/`) if present; otherwise the sections the last merged PRs share (`gh pr view <n> --json title,body`) |
+| Workers | no repo setting covers it, so it stays unsettled; the inferred value is `claude` for all roles |
 
 A field is **settled** when one source gives one clear answer. Collect the unsettled ones, plus any inference resting on fewer than three examples, and ask about them with AskUserQuestion (four questions per call at most), each question offering the inferred value first.
+
+Ask about Workers in two rounds. First ask whether every worker role uses the same agent or each role gets its own. Then ask for the Orca agent id: one question for all roles, or one per role. `orca orchestration worker-start --help` lists the ids Orca knows, such as `codex` and `opencode`.
 
 Done when every field in the template holds a value and the user has confirmed each unsettled one.
 
