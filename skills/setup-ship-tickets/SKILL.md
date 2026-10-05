@@ -28,7 +28,7 @@ Done when every check has a recorded result.
 
 ## 2. Gather
 
-`git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`. If the file exists, this is an **update**: keep every value it sets and gather only the fields it lacks or that contradict the repo settings from step 1. A file written before Merge approval existed lacks that field, so the update adds it.
+`git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`. If the file exists, this is an **update**: keep every value it sets and gather only the fields it lacks or that contradict the repo settings from step 1.
 
 For each field, take the value from the first source that settles it:
 
@@ -36,7 +36,7 @@ For each field, take the value from the first source that settles it:
 | --- | --- |
 | Base branch | `defaultBranchRef` |
 | Merge method | the one method `mergeCommitAllowed` / `squashMergeAllowed` / `rebaseMergeAllowed` allows; with several allowed, it stays unsettled |
-| Merge approval | no repo setting settles it: always ask, proposing `ask` |
+| Merge approval | no repo setting covers it, so it stays unsettled; the inferred value is `ask` |
 | Branch naming | the pattern in `gh pr list --state all --limit 30 --json headRefName` |
 | After merge | `deleteBranchOnMerge: true` → "nothing"; otherwise delete the remote branch |
 | CI | `pull_request` triggers in `.github/workflows/`, plus `gh pr view <recent-pr> --json statusCheckRollup` on two or three recent PRs to catch external checks. Checks found → `required`; none → `none` |
@@ -54,7 +54,7 @@ Work in a separate worktree, so the user's checkout stays as it is:
 git worktree add <tmp-dir> -b agents/shipping-config origin/<default>
 ```
 
-Write `docs/agents/shipping.md` there, following the template with its placeholder text replaced by the values from step 2. Drop the template's opening paragraph about copying the file, and keep the line saying which skills read it. Show the user the file (or the diff, on an update) and wait for their go-ahead.
+Write `docs/agents/shipping.md` there, following the template with its placeholder text replaced by the values from step 2. Drop the template's opening paragraph about copying the file, and take the line saying which skill reads it from the template, replacing an older one on an update. Show the user the file (or the diff, on an update) and wait for their go-ahead.
 
 Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default>` with a body listing each value and where it came from. Remove the worktree with `git worktree remove <tmp-dir>`.
 

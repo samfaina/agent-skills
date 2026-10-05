@@ -69,9 +69,9 @@ The loop covers the first minutes after a push, when GitHub lists no checks yet.
 
 ### 6. Merge
 
-Merge with the merge method from `shipping.md`: `gh pr merge <pr> --<method>`. The merge approval decides when:
+Merge with the merge method from `shipping.md`: `gh pr merge <pr> --<method>`. The merge approval from "Before the first ticket" decides whether the user approves it first:
 
-- **`auto`** → merge now. CI is green, or `shipping.md` sets **CI** to `none`.
+- **`auto`** → merge now.
 - **`ask`** → show the user the PR URL, its title and its size (`gh pr view <pr> --json url,title,additions,deletions,changedFiles`), then ask them to pick one, with AskUserQuestion where your harness has it:
   - **Merge** → merge.
   - **Request changes** → take the user's notes as the reason for a fix worker, then run steps 5 and 6 again. Review rounds are unlimited; the cap of 2 counts CI fixes only.

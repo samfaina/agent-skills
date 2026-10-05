@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Ship tickets
 
-Run the loop in `ship-tickets-loop.md`, in this skill's own folder, for the tickets the user named. Read it in full before your first command.
+Run the loop in `ship-tickets-loop.md`, in this skill's own folder, with the arguments below. Read it in full before your first command.
 
 ## Arguments
 
