@@ -35,6 +35,7 @@ The coordinator:
 - loads Orca's orchestration guide, the source of truth for every worker command;
 - reads `docs/agents/shipping.md` from the remote default branch and stops if it isn't there;
 - turns your arguments, or every open `ready-for-agent` issue, into the **ticket set**;
+- checks that the implement worker's agent will load the `tdd` and `code-review` from mattpocock/skills, and stops if it would load another skill with the same name;
 - opens one Orca run for the whole session, which every worker belongs to.
 
 ## 1. Pick
@@ -51,11 +52,11 @@ Because tickets ship one at a time, each worktree starts from a base that alread
 
 ## 3. Implement
 
-A fresh agent gets the implement spec. It reads the issue and anything it links, builds test-first with the `tdd` skill, runs the full test suite, reviews its own diff against the issue with `code-review`, fixes what that finds, and commits. It doesn't push.
+A fresh agent gets the implement spec. It reads the issue and anything it links, builds test-first with the `tdd` skill, runs the full test suite, reviews its own diff against the issue with `code-review`, fixes what that finds, and commits. It doesn't push. Its report names the folder it loaded each of the two skills from.
 
 If the worker has a question, it asks the coordinator. The coordinator answers from the ticket and the repo when it can, and otherwise asks you and passes your answer on.
 
-The coordinator accepts the work only when the branch has new commits and the working tree is clean.
+The coordinator accepts the work only when the branch has new commits, the working tree is clean, and both skills came from the folders the check before the first ticket found.
 
 ## 4. PR
 

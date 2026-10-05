@@ -21,12 +21,11 @@ Run each check and record pass or fail with the evidence:
 | `gh` is authenticated and the repo resolves | `gh repo view --json nameWithOwner,defaultBranchRef,mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed,deleteBranchOnMerge` |
 | `orca` resolves on `PATH` and serves Orca's orchestration guide | `command -v orca` in POSIX shells, `(Get-Command orca).Source` in PowerShell; on Windows it must be `orca.exe`, not `orca.cmd`. Then `orca skills get orchestration` prints the guide |
 | This session runs inside an Orca terminal | `ORCA_TERMINAL_HANDLE` is set |
-| Workers can use Matt Pocock's `tdd` and `code-review` skills | `tdd` and `code-review` are in your skill list; in Claude Code, `mattpocock-skills:tdd` and `mattpocock-skills:code-review`, since its built-in `code-review` is a different skill |
 | The `ready-for-agent` label exists | `ready-for-agent` is an exact line of `gh label list --search ready-for-agent --json name --jq '.[].name'` (the search is fuzzy) |
 
 A missing label is the one failure you fix here: offer to create it with `gh label create ready-for-agent`. Report the other failures with the fix the user needs; they block the loop, not this setup, so carry on.
 
-Done when every check has a recorded result.
+Done when every check has a recorded result. Whether workers will load Matt Pocock's `tdd` and `code-review` depends on **Workers**, so step 2 checks it.
 
 ## 2. Gather
 
@@ -49,7 +48,9 @@ A field is **settled** when one source gives one clear answer. Collect the unset
 
 Ask about Workers in two rounds. First ask whether every worker role uses the same agent or each role gets its own. Then ask for the Orca agent id: one question for all roles, or one per role. `orca orchestration worker-start --help` lists the ids Orca knows, such as `codex` and `opencode`.
 
-Done when every field in the template holds a value and the user has confirmed each unsettled one.
+Once Workers is settled, run the provenance check for the implement worker's agent and record its result alongside the preflight checks. The check is `skill-provenance.md` in the `ship-tickets` skill's folder, which sits beside this skill's folder (`../ship-tickets/`).
+
+Done when every field in the template holds a value, the user has confirmed each unsettled one, and the provenance check has a recorded result.
 
 ## 3. Open the PR
 
@@ -68,4 +69,4 @@ Done when the PR is open and the worktree is removed.
 ## Report
 
 - The PR URL. `ship-tickets` can run once it merges.
-- Each preflight failure still open, with the fix the user needs.
+- Each preflight failure still open, with the fix the user needs. A failed provenance check names the skill and the path the worker would load it from.

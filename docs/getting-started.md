@@ -37,8 +37,8 @@ Open a Claude Code session in an Orca terminal, inside the repo, and run:
 
 It works in three steps.
 
-1. **Preflight.** It checks that `gh` is logged in, that Orca is reachable, that the session runs in an Orca terminal, that the mattpocock skills are installed, and that the repo has a `ready-for-agent` label. It offers to create the label. Anything else that fails is reported with the fix, and setup carries on.
-2. **Gather.** It fills in every field of [`shipping.md`](shipping-md) from what the repo already says: allowed merge methods, the auto-delete-branch setting, CI workflows and recent check runs, past branch names, the PR template or recent PR bodies. You get asked only about the fields it can't settle, with its best guess as the first option.
+1. **Preflight.** It checks that `gh` is logged in, that Orca is reachable, that the session runs in an Orca terminal, and that the repo has a `ready-for-agent` label. It offers to create the label. Anything else that fails is reported with the fix, and setup carries on.
+2. **Gather.** It fills in every field of [`shipping.md`](shipping-md) from what the repo already says: allowed merge methods, the auto-delete-branch setting, CI workflows and recent check runs, past branch names, the PR template or recent PR bodies. You get asked only about the fields it can't settle, with its best guess as the first option. Once it knows which agent runs the implement worker, it checks that the agent will load the `tdd` and `code-review` from [mattpocock/skills](https://github.com/mattpocock/skills) and not another skill with the same name.
 3. **Open the PR.** It writes `docs/agents/shipping.md` in a separate worktree, so your checkout isn't touched, and shows it to you. Once you approve, it opens a PR.
 
 **Merge that PR.** The loop always reads `shipping.md` from the remote default branch, so it runs the same from any worktree, and it won't start until the file is there.

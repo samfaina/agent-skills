@@ -9,9 +9,10 @@ You are the **coordinator**: you own the ticket order, the CI wait and the merge
 3. Resolve the **ticket set**: the issue numbers from the arguments or, with none, every open issue labelled `ready-for-agent`.
 4. Resolve the **merge approval**, `ask` or `auto`: the override from the arguments when the user gave one, otherwise the **Merge approval** field in `shipping.md`. A file without the field means `ask`.
 5. Resolve the **worker agents** from the **Workers** field in `shipping.md`: one Orca agent id for each role: implement, PR and fix. A single id applies to all three roles, and a role the field leaves out gets `claude`. A file without the field means `claude` for all roles.
-6. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
+6. Check that the implement agent will load Matt Pocock's `tdd` and `code-review`: run the provenance check in `skill-provenance.md`, in this skill's own folder, for that agent. On a fail, stop before the first ticket and report the skill and its path. Keep the resolved folders: each ticket's step 3 (Implement worker) compares the worker's report with them.
+7. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
 
-Done when the guide is loaded, `shipping.md` is read, the ticket set is a list of numbers, the merge approval is `ask` or `auto`, each worker role has an agent id, and a Run is bound.
+Done when the guide is loaded, `shipping.md` is read, the ticket set is a list of numbers, the merge approval is `ask` or `auto`, each worker role has an agent id, `tdd` and `code-review` each have a resolved folder, and a Run is bound.
 
 ## For each ticket
 
@@ -56,7 +57,13 @@ Pass every spec this way. Then wait as the guide says (`check --wait --types wor
 
 Answer each worker `question` with `reply`. Answer from the ticket and the repo when they hold the answer, otherwise ask the user and relay what they say.
 
-Accept `--outcome succeeded` when `git -C <path> log origin/<base>..HEAD --oneline` lists commits and `git -C <path> status --porcelain` is empty. Then `worker-release` and ack.
+Accept `--outcome succeeded` when:
+
+- `git -C <path> log origin/<base>..HEAD --oneline` lists commits;
+- `git -C <path> status --porcelain` is empty;
+- the summary gives the base directory of the `tdd` and the `code-review` the worker loaded, and the realpath of each matches the resolved folder from "Before the first ticket" (realpaths as `skill-provenance.md` defines them). On a mismatch, stop the loop and report both paths: the worker built or reviewed with a different skill.
+
+Then `worker-release` and ack.
 
 ### 4. PR worker
 
@@ -105,7 +112,7 @@ Stop the loop and leave the ticket's worktree and PR exactly as they are when:
 
 ## Final report
 
-Per ticket in the set: **merged** (PR link), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it).
+Per ticket in the set: **merged** (PR link), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it, or the failed provenance check).
 
 ## Specs
 
@@ -122,11 +129,13 @@ Change: build what the ticket asks. Read it first with `gh issue view <n> --comm
 - Review your diff: call the Skill tool with `code-review` (in Claude Code, `mattpocock-skills:code-review`, not its built-in `code-review`), against `origin/<base>` with issue #<n> as the spec, and fix what it finds.
 - Commit to the current branch.
 
+If `tdd` or `code-review` is not available to you, stop, and settle with `--outcome failed`, naming the missing skill.
+
 Constraints: follow the repo's agent instruction files (AGENTS.md, CLAUDE.md and the like) and the docs they point to. Keep the commits local: another worker pushes the branch and opens the PR.
 
 Ownership: this worktree and its branch.
 
-Observable acceptance: every acceptance criterion in #<n> is met, the full test suite passes, and the work is committed with a clean working tree.
+Observable acceptance: every acceptance criterion in #<n> is met, the full test suite passes, and the work is committed with a clean working tree. The worker_done summary gives the base directory of the `tdd` skill and of the `code-review` skill you loaded: the folder holding each SKILL.md, as your harness reported it when the skill loaded, or else the folder of the SKILL.md you read.
 ```
 
 ### PR spec
