@@ -1,5 +1,5 @@
 title: agent-skills
-description: Ship GitHub tickets one at a time with Claude Code and Orca workers.
+description: Ship GitHub tickets one at a time with Orca workers, from Claude Code, OpenCode or another harness.
 url: https://samfaina.github.io
 baseurl: /agent-skills
 
@@ -20,7 +20,7 @@ gh_edit_branch: main
 gh_edit_source: docs
 gh_edit_view_mode: edit
 
-footer_content: "agent-skills · a Claude Code plugin by samfaina"
+footer_content: "agent-skills · by samfaina"
 
 exclude:
   - agents

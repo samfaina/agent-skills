@@ -6,7 +6,7 @@ nav_order: 4
 # shipping.md reference
 {: .no_toc }
 
-Each repo you ship from has a `docs/agents/shipping.md` with the settings the loop can't guess. `/setup-ship-tickets` writes it. You can also copy [`shared/shipping-template.md`](https://github.com/samfaina/agent-skills/blob/main/shared/shipping-template.md) by hand.
+Each repo you ship from has a `docs/agents/shipping.md` with the settings the loop can't guess. `/setup-ship-tickets` writes it. You can also copy [`skills/setup-ship-tickets/shipping-template.md`](https://github.com/samfaina/agent-skills/blob/main/skills/setup-ship-tickets/shipping-template.md) by hand.
 
 The loop reads the file from the remote default branch, so edits take effect once they are merged.
 
@@ -19,9 +19,11 @@ The loop reads the file from the remote default branch, so edits take effect onc
 | --- | --- | --- |
 | **Base branch** | The branch tickets merge into, usually the default branch. | Worktree creation, PR base, CI, merge |
 | **Merge method** | `merge`, `squash` or `rebase`, passed to `gh pr merge --<method>`. Use one your repo settings allow. | Merge |
+| **Merge approval** | `ask` (once CI is green, the loop shows you the PR and waits for **Merge**, **Request changes** or **Stop**) or `auto` (the loop merges as soon as CI is green). A file without this field counts as `ask`. `/ship-tickets ask` or `/ship-tickets auto` overrides it for one run. | Merge |
 | **Branch naming** | How to turn a ticket into a worktree name, such as the kebab-case issue title. Note any prefix Orca adds to the branch. | Worktree creation |
 | **After merge** | What to do once the PR merges, such as deleting the remote branch, or "nothing" when GitHub deletes it for you. | Clean up |
 | **CI** | `required` (the loop waits for checks to pass) or `none` (no checks run on PRs, so the loop merges without waiting). A file without this field counts as `required`. | CI |
+| **Workers** | The Orca agent id each worker starts in, passed to `worker-start --agent`: one id for every role, such as `claude` (all roles), or one per role, such as implement `claude`, PR `opencode`, fix `claude`. A role left out, or a file without this field, gets `claude`. See [Workers](harnesses#workers). | Implement, PR and fix workers |
 | **PR title** | How the PR worker writes the title, such as the issue title, unchanged. | PR |
 | **PR body** | The sections, in order, and what each holds. The loop adds `Closes #<n>` at the end. | PR |
 
@@ -30,13 +32,15 @@ The loop reads the file from the remote default branch, so edits take effect onc
 ```markdown
 # Shipping
 
-Read by `/ship-tickets` and `/ship-tickets-reviewed` (samfaina/agent-skills).
+Read by the `ship-tickets` skill (samfaina/agent-skills).
 
 - **Base branch:** `main`
 - **Merge method:** `squash`
+- **Merge approval:** `ask`
 - **Branch naming:** kebab-case issue title, prefixed with the issue number: `42-add-csv-export`.
 - **After merge:** nothing (the repo deletes merged branches).
 - **CI:** `required`
+- **Workers:** `claude` (all roles)
 
 ## PR format
 
@@ -49,4 +53,4 @@ Read by `/ship-tickets` and `/ship-tickets-reviewed` (samfaina/agent-skills).
 
 ## Why `CI: none` exists
 
-In a repo where no checks run on PRs, waiting for CI never ends well. The loop would wait ten minutes for checks to show up and then read GitHub's "no checks reported" error as a failure, starting fix workers with nothing to fix. `CI: none` skips the wait. The implement worker still runs the full test suite before committing.
+In a repo where no checks run on PRs, waiting for CI never ends well. The loop would wait ten minutes for checks to show up and then stop, because CI is required and none started. `CI: none` skips the wait. The implement worker still runs the full test suite before committing.
