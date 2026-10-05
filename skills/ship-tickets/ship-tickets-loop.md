@@ -4,8 +4,8 @@ You are the **coordinator**: you own the ticket order, the CI wait and the merge
 
 ## Before the first ticket
 
-1. Load Orca's orchestration guide with `orca skills get orchestration`, resolving the executable as the `orchestration` skill says. The guide is the source of truth for every `orca orchestration` command below and for its safety floor: an empty or timed-out wait is a checkpoint, and only an accepted `worker_done` authorizes `worker-release`. Before any stop, abandon or retry, load its `references/recovery-and-cleanup.md`.
-2. Read `docs/agents/shipping.md` as the remote default branch holds it, so the loop runs the same from any worktree: `git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`, where `<default>` comes from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. It sets the base branch, merge method, merge approval, branch naming, CI, workers, PR format and post-merge cleanup. If the default branch lacks the file, stop and tell the user to run `/setup-ship-tickets` and merge the PR it opens.
+1. Resolve `orca` on `PATH` (`command -v orca` in POSIX shells, `(Get-Command orca).Source` in PowerShell) and load Orca's orchestration guide with `orca skills get orchestration`. On Windows it must resolve to `orca.exe`: `orca.cmd` runs arguments through `cmd.exe`, which cuts a multi-line spec at its first newline. Use this executable for every `orca` command in the run. The guide is the source of truth for every `orca orchestration` command below and for its safety floor: an empty or timed-out wait is a checkpoint, and only an accepted `worker_done` authorizes `worker-release`. Before any stop, abandon or retry, load its `references/recovery-and-cleanup.md`.
+2. Read `docs/agents/shipping.md` as the remote default branch holds it, so the loop runs the same from any worktree: `git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`, where `<default>` comes from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. It sets the base branch, merge method, merge approval, branch naming, CI, workers, PR format and post-merge cleanup. If the default branch lacks the file, stop and tell the user to run `setup-ship-tickets` and merge the PR it opens.
 3. Resolve the **ticket set**: the issue numbers from the arguments or, with none, every open issue labelled `ready-for-agent`.
 4. Resolve the **merge approval**, `ask` or `auto`: the override from the arguments when the user gave one, otherwise the **Merge approval** field in `shipping.md`. A file without the field means `ask`.
 5. Resolve the **worker agents** from the **Workers** field in `shipping.md`: one Orca agent id for each role: implement, PR and fix. A single id applies to all three roles, and a role the field leaves out gets `claude`. A file without the field means `claude` for all roles.
@@ -17,13 +17,13 @@ Done when the guide is loaded, `shipping.md` is read, the ticket set is a list o
 
 ### 1. Pick
 
-A ticket is **ready** when it is open and none of its blockers is open: `gh api repos/{owner}/{repo}/issues/<n> --jq .issue_dependencies_summary.blocked_by` returns `0`, and every issue in a `Blocked by:` line of its body is closed. Take the lowest-numbered ready ticket in the set.
+A ticket is **ready** when it is open and none of its blockers is open: `gh api 'repos/{owner}/{repo}/issues/<n>' --jq .issue_dependencies_summary.blocked_by` returns `0` (keep the quotes: PowerShell reads bare braces as a script block), and every issue in a `Blocked by:` line of its body is closed. Take the lowest-numbered ready ticket in the set.
 
 Tickets left but none ready: stop and report which open blockers hold them.
 
 ### 2. Worktree
 
-```bash
+```text
 git fetch origin
 orca worktree create --name <slug> --issue <n> --base-branch origin/<base> --json
 ```
@@ -32,14 +32,27 @@ orca worktree create --name <slug> --issue <n> --base-branch origin/<base> --jso
 
 ### 3. Implement worker
 
+Orca takes a spec only as the literal text of `--spec`, so pass it as one argument whose backticks, quotes and `$` reach the worker unchanged. Load it into `spec` with your shell's literal multi-line form, then pass `"$spec"`. Run both lines as one command, so the variable survives to `worker-start`.
+
+In bash or zsh, a quoted heredoc. `read` exits 1 at the end of the heredoc; that is expected:
+
 ```bash
-orca orchestration worker-start --worktree issue:<n> --agent <implement agent> --task-title "#<n> implement" --spec "$(cat <<'SPEC'
+IFS= read -r -d '' spec <<'SPEC'
 <implement spec>
 SPEC
-)" --json
+orca orchestration worker-start --worktree issue:<n> --agent <implement agent> --task-title "#<n> implement" --spec "$spec" --json
 ```
 
-Then wait as the guide says (`check --wait --types worker_done,escalation,question`). Pass every spec through a quoted heredoc like this one, so its backticks and `$` reach the worker unchanged.
+In PowerShell, a single-quoted here-string. The closing `'@` starts its own line:
+
+```powershell
+$spec = @'
+<implement spec>
+'@
+orca orchestration worker-start --worktree issue:<n> --agent <implement agent> --task-title "#<n> implement" --spec "$spec" --json
+```
+
+Pass every spec this way. Then wait as the guide says (`check --wait --types worker_done,escalation,question`).
 
 Answer each worker `question` with `reply`. Answer from the ticket and the repo when they hold the answer, otherwise ask the user and relay what they say.
 
@@ -47,23 +60,18 @@ Accept `--outcome succeeded` when `git -C <path> log origin/<base>..HEAD --oneli
 
 ### 4. PR worker
 
-A fresh agent in the same worktree: `worker-start --worktree issue:<n> --agent <PR agent> --task-title "#<n> PR"` with the PR spec. On an existing worktree Orca opens a new terminal, so this agent starts with an empty context.
+A fresh agent in the same worktree: `worker-start --worktree issue:<n> --agent <PR agent> --task-title "#<n> PR"` with the PR spec, passed as in step 3. On an existing worktree Orca opens a new terminal, so this agent starts with an empty context.
 
 Accept when the `worker_done` summary names a PR, `gh pr view <pr> --json headRefName,body` shows the ticket's branch, and the body contains `Closes #<n>`. Release and ack.
 
 ### 5. CI
 
-If `shipping.md` sets **CI** to `none`, go to step 6. A file without the field means `required`. Otherwise run this as a background command, so you are notified when it exits:
+If `shipping.md` sets **CI** to `none`, go to step 6. A file without the field means `required`. Otherwise wait for the checks in two parts:
 
-```bash
-for i in $(seq 1 40); do
-  [ "$(gh pr view <pr> --json statusCheckRollup --jq '.statusCheckRollup | length')" -gt 0 ] && break
-  sleep 15
-done
-gh pr checks <pr> --watch --fail-fast --interval 30
-```
+1. **Checks listed.** For the first minutes after a push GitHub lists no checks yet. Run `gh pr view <pr> --json statusCheckRollup --jq '.statusCheckRollup | length'` every 15 seconds or so until it prints a number above 0. If it still prints 0 after 10 minutes, stop the loop: CI is `required` but no check started.
+2. **Checks settled.** Run `gh pr checks <pr> --watch --fail-fast --interval 30`.
 
-The loop covers the first minutes after a push, when GitHub lists no checks yet.
+If your harness notifies you when a background command exits, run the wait in the background. Otherwise run it in the foreground, and if it times out, run it again until it exits with a result. Both commands are safe to rerun.
 
 - **Exit 0 (green)** → step 6.
 - **Non-zero (red)** → start a **fix worker** in the same worktree: `worker-start --worktree issue:<n> --agent <fix agent> --task-title "#<n> fix"` with the fix spec and the CI failure as its reason. Accept it when it reports the fix pushed, then run step 5 again. A ticket gets at most **2** fix workers for CI. After the third red run, stop the loop.
@@ -73,7 +81,7 @@ The loop covers the first minutes after a push, when GitHub lists no checks yet.
 Merge with the merge method from `shipping.md`: `gh pr merge <pr> --<method>`. The merge approval from "Before the first ticket" decides whether the user approves it first:
 
 - **`auto`** → merge now.
-- **`ask`** → show the user the PR URL, its title and its size (`gh pr view <pr> --json url,title,additions,deletions,changedFiles`), then ask them to pick one, with AskUserQuestion where your harness has it:
+- **`ask`** → show the user the PR URL, its title and its size (`gh pr view <pr> --json url,title,additions,deletions,changedFiles`), then ask them to pick one and wait for the answer; if your harness has a structured question tool, use it:
   - **Merge** → merge.
   - **Request changes** → start a fix worker as in step 5, with the user's notes as its reason, then run steps 5 and 6 again. Review rounds are unlimited; the cap of 2 counts CI fixes only.
   - **Stop** → leave the PR open and end the loop.
@@ -93,7 +101,7 @@ Done when the PR is merged, the ticket is closed, the worktree is removed and no
 Stop the loop and leave the ticket's worktree and PR exactly as they are when:
 
 - a worker settles with `--outcome failed`, or its result fails the acceptance check of its step;
-- CI is red after 2 fix workers;
+- CI is red after 2 fix workers, or no check starts within 10 minutes;
 - `worker-start` exits non-zero (follow its receipt and the recovery reference, and launch no duplicate);
 - the user picks **Stop** at step 6.
 
@@ -111,12 +119,13 @@ Each spec meets Orca's task-spec contract: Target, Change, Constraints, Ownershi
 Target: GitHub issue #<n> in <owner>/<repo>, worked in this worktree on branch <branch>.
 
 Change: build what the ticket asks. Read it first with `gh issue view <n> --comments`, plus any spec or parent issue it links. Then:
-- Build test-first with the `mattpocock-skills:tdd` skill, at the seams the ticket or its spec names.
+- Build test-first: call the Skill tool with `tdd`, at the seams the ticket or its spec names.
 - Run typechecking and single test files as you go, and the full test suite once at the end.
-- Review your diff with the `mattpocock-skills:code-review` skill against `origin/<base>`, with issue #<n> as the spec, and fix what it finds.
+- Review your diff: call the Skill tool with `code-review`, against `origin/<base>` with issue #<n> as the spec, and fix what it finds.
 - Commit to the current branch.
+In Claude Code, the skills are `mattpocock-skills:tdd` and `mattpocock-skills:code-review`; its built-in `code-review` is a different skill.
 
-Constraints: follow the repo's CLAUDE.md / AGENTS.md and the docs they point to. Keep the commits local: another worker pushes the branch and opens the PR.
+Constraints: follow the repo's agent instruction files (AGENTS.md, CLAUDE.md and the like) and the docs they point to. Keep the commits local: another worker pushes the branch and opens the PR.
 
 Ownership: this worktree and its branch.
 

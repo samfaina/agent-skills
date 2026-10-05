@@ -1,6 +1,6 @@
 # Shipping
 
-Read by `/ship-tickets` (samfaina/agent-skills). Run `/setup-ship-tickets` to fill this in as `docs/agents/shipping.md` and open the PR, or copy it there by hand. Either way it has to be merged to the default branch: the loop reads it from there.
+Read by the `ship-tickets` skill (samfaina/agent-skills). Run the `setup-ship-tickets` skill to fill this in as `docs/agents/shipping.md` and open the PR, or copy it there by hand. Either way it has to be merged to the default branch: the loop reads it from there.
 
 - **Base branch:** `main`
 - **Merge method:** `merge` | `squash` | `rebase` (passed to `gh pr merge --<method>`)

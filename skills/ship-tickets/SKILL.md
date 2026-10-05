@@ -7,6 +7,8 @@ disable-model-invocation: true
 
 # Ship tickets
 
+Run this skill only when the user invoked it by name. If you reached it any other way, stop and tell the user to run `ship-tickets` themselves.
+
 Run the loop in `ship-tickets-loop.md`, in this skill's own folder, with the arguments below. Read it in full before your first command.
 
 ## Arguments
