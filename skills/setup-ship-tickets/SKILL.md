@@ -19,8 +19,8 @@ Run each check and record pass or fail with the evidence:
 | Check | How |
 | --- | --- |
 | `gh` is authenticated and the repo resolves | `gh repo view --json nameWithOwner,defaultBranchRef,mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed,deleteBranchOnMerge` |
-| `orca` resolves on `PATH` and serves Orca's orchestration guide | `command -v orca` in POSIX shells, `(Get-Command orca).Source` in PowerShell; on Windows it must be `orca.exe`. Then `orca skills get orchestration` prints the guide |
-| This session runs inside an Orca terminal | `ORCA_TERMINAL_HANDLE` is set (`$ORCA_TERMINAL_HANDLE` in POSIX shells, `$env:ORCA_TERMINAL_HANDLE` in PowerShell) |
+| `orca` resolves on `PATH` and serves Orca's orchestration guide | `command -v orca` in POSIX shells, `(Get-Command orca).Source` in PowerShell; on Windows it must be `orca.exe`, not `orca.cmd`. Then `orca skills get orchestration` prints the guide |
+| This session runs inside an Orca terminal | `ORCA_TERMINAL_HANDLE` is set |
 | Workers can use Matt Pocock's `tdd` and `code-review` skills | `tdd` and `code-review` are in your skill list; in Claude Code, `mattpocock-skills:tdd` and `mattpocock-skills:code-review`, since its built-in `code-review` is a different skill |
 | The `ready-for-agent` label exists | `ready-for-agent` is an exact line of `gh label list --search ready-for-agent --json name --jq '.[].name'` (the search is fuzzy) |
 
@@ -55,7 +55,7 @@ Done when every field in the template holds a value and the user has confirmed e
 
 Work in a separate worktree, so the user's checkout stays as it is:
 
-```bash
+```text
 git worktree add <tmp-dir> -b agents/shipping-config origin/<default>
 ```
 
