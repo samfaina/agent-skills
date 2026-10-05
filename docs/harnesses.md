@@ -15,13 +15,13 @@ The coordinator and the workers don't have to share a harness. Your session can 
 
 ## Supported harnesses
 
-| Harness | Version | Status |
+| Harness | Version checked | Status |
 | --- | --- | --- |
-| [Claude Code](https://github.com/anthropics/claude-code) | 2.1.289 | Tested |
-| [OpenCode](https://opencode.ai/) | 1.18.21 | Tested |
+| [Claude Code](https://github.com/anthropics/claude-code) | 2.1.289 | Supported |
+| [OpenCode](https://opencode.ai/) | 1.18.21 | Supported |
 | Codex CLI, Gemini CLI and others | | Untested |
 
-Tested with Orca 1.4.220, in October 2026.
+The skills were written against these versions and Orca 1.4.220, in October 2026. A repeatable test run of the full loop in each supported harness is still to come.
 
 Any other harness should work if it loads `SKILL.md` skills and Orca supports it as an agent. `orca orchestration worker-start --help` lists the agent ids Orca knows.
 
@@ -48,6 +48,8 @@ The Claude Code plugins:
 
 `mattpocock-skills@claude-plugins-official`, from Anthropic's official marketplace, works too. A Claude Code worker needs Matt's skills as a plugin: it calls them as `mattpocock-skills:tdd` and `mattpocock-skills:code-review`, because Claude Code has a built-in `code-review`.
 
+`npx skills add samfaina/agent-skills` works in Claude Code too, in place of the plugin. Matt's skills don't have that choice there: the provenance check expects the plugin.
+
 OpenCode doesn't read Claude Code plugin skills, so if you use both harnesses, install through `npx skills add` for OpenCode as well. `--agent opencode` keeps that install out of Claude Code. `npx skills add` installs into the current repo; add `-g` to install for every repo.
 
 ## Asking you a question
@@ -68,10 +70,10 @@ Once the PR is open, the coordinator waits for GitHub to list the checks and the
 | --- | --- |
 | Claude Code | Runs the watch in the background and gets notified when it exits. |
 | OpenCode | Has no background shell commands, so it runs the watch in the foreground. When the command times out, it runs it again. The watch is safe to rerun. |
-| Codex CLI | Polls the command until it exits. |
-| Gemini CLI | Runs the watch in the background, if its settings inject the result when a background command exits (below). |
+| Codex CLI | Untested. Expected to poll the command until it exits. |
+| Gemini CLI | Untested. Expected to run the watch in the background, once its settings inject the result when a background command exits (below). |
 
-For Gemini CLI, set this in `settings.json`:
+For Gemini CLI, set this in `~/.gemini/settings.json`, or in `.gemini/settings.json` in the repo:
 
 ```json
 {
@@ -92,7 +94,7 @@ The loop runs in bash and in PowerShell 7 (`pwsh`). The one command that differs
 
 ## Keeping the skills user-invoked
 
-Both skills are meant to run only when you ask for them by name, because `/ship-tickets` merges PRs. Each harness has its own way to say so, and each skill also opens with a line telling the agent to stop if you didn't invoke it.
+Both skills are meant to run only when you ask for them by name, because `/ship-tickets` merges PRs. Each harness has its own way to say so, and each skill also opens with a line telling the model to stop if you didn't invoke it.
 
 - **Claude Code** reads `disable-model-invocation: true` in `SKILL.md`.
 - **Codex CLI** reads `allow_implicit_invocation: false` in the skill's `agents/openai.yaml`.
@@ -126,7 +128,7 @@ The implement worker builds with Matt Pocock's `tdd` and reviews with his `code-
 
 | Harness | Passes when |
 | --- | --- |
-| Claude Code | `claude plugin list` shows `mattpocock-skills` enabled, from a marketplace whose source is `mattpocock/skills` (Matt's own marketplace or Anthropic's official one). |
+| Claude Code | `claude plugin list` shows `mattpocock-skills` enabled, from Matt's own marketplace (`mattpocock/skills`), or from one whose `mattpocock-skills` entry points at `github.com/mattpocock/skills`, as Anthropic's official marketplace does. |
 | OpenCode | `opencode debug skill`, run from the repo, lists one `tdd` and one `code-review`, or duplicates that are links to the same folder. That folder's install record (`skills-lock.json` in the repo, or `~/.agents/.skill-lock.json`) gives `mattpocock/skills` as the source. |
 | Others, or no install record | Can't pass. The coordinator checks the skills' content instead, shows you their paths and asks you to confirm before it goes on. |
 

@@ -8,7 +8,7 @@ nav_order: 1
 <div class="wrap">
   <div>
     <h1>Ship GitHub tickets, one at a time.<em>Each one built on the last.</em></h1>
-    <p class="lede">Agent skills that ship GitHub tickets for you, one at a time, from Claude Code, OpenCode or another harness. For each ticket it opens an Orca worktree, has one agent build it test-first and another open the PR, waits for CI, and merges. The next ticket starts from the branch the last one merged into, so it builds on the code before it.</p>
+    <p class="lede">Agent skills that ship GitHub tickets for you, one at a time, from Claude Code, OpenCode or another harness. For each ticket they open an Orca worktree, have one worker build it test-first and another open the PR, wait for CI, and merge. The next ticket starts from the branch the last one merged into, so it builds on the code before it.</p>
     <p class="facts"><span>test-first workers</span><span>one worktree per ticket</span></p>
   </div>
   <div class="term" aria-label="Example run of /ship-tickets 41 42" role="img">
@@ -37,7 +37,7 @@ nav_order: 1
     <a class="cell cell--link" href="{{ '/harnesses' | relative_url }}"><span class="k">harness</span><h3>Claude Code, OpenCode… <i aria-hidden="true">→</i></h3><p>Runs the skills. Your session is the coordinator, and each worker can run in its own harness.</p></a>
     <a class="cell cell--link" href="https://github.com/stablyai/orca" target="_blank" rel="noopener"><span class="k">worktrees</span><h3>Orca <i aria-hidden="true">↗</i></h3><p>Gives each ticket its own worktree and runs the workers. Start the coordinator session from an Orca terminal.</p></a>
     <a class="cell cell--link" href="https://cli.github.com/" target="_blank" rel="noopener"><span class="k">github</span><h3>GitHub CLI <i aria-hidden="true">↗</i></h3><p>Reads issues, opens and merges PRs, watches CI. Run <code>gh auth login</code> first.</p></a>
-    <a class="cell cell--link" href="https://github.com/mattpocock/skills" target="_blank" rel="noopener"><span class="k">skills</span><h3>mattpocock-skills <i aria-hidden="true">↗</i></h3><p>Workers build with its <code>tdd</code> skill and review with <code>code-review</code>.</p></a>
+    <a class="cell cell--link" href="https://github.com/mattpocock/skills" target="_blank" rel="noopener"><span class="k">skills</span><h3>mattpocock/skills <i aria-hidden="true">↗</i></h3><p>Workers build with its <code>tdd</code> skill and review with <code>code-review</code>.</p></a>
   </div>
 </div>
 </section>

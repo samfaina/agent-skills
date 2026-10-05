@@ -23,7 +23,7 @@ The loop reads the file from the remote default branch, so edits take effect onc
 | **Branch naming** | How to turn a ticket into a worktree name, such as the kebab-case issue title. Note any prefix Orca adds to the branch. | Worktree creation |
 | **After merge** | What to do once the PR merges, such as deleting the remote branch, or "nothing" when GitHub deletes it for you. | Clean up |
 | **CI** | `required` (the loop waits for checks to pass) or `none` (no checks run on PRs, so the loop merges without waiting). A file without this field counts as `required`. | CI |
-| **Workers** | The Orca agent id each worker starts in, such as `claude` or `opencode`: one id for every role, or one per role (see [below](#workers)). A file without this field counts as `claude` for every role. | Implement, PR and fix workers |
+| **Workers** | The Orca agent id each worker starts in, passed to `worker-start --agent`: one id for every role, such as `claude` (all roles), or one per role, such as implement `claude`, PR `opencode`, fix `claude`. A role left out, or a file without this field, gets `claude`. See [Workers](harnesses#workers). | Implement, PR and fix workers |
 | **PR title** | How the PR worker writes the title, such as the issue title, unchanged. | PR |
 | **PR body** | The sections, in order, and what each holds. The loop adds `Closes #<n>` at the end. | PR |
 
@@ -50,17 +50,6 @@ Read by the `ship-tickets` skill (samfaina/agent-skills).
   2. **Testing**: the tests added and how to check the change by hand.
   3. `Closes #<n>`
 ```
-
-## Workers
-
-The loop starts each worker with `orca orchestration worker-start --agent <id>`, so the field takes the agent ids Orca knows. `orca orchestration worker-start --help` lists them. Write one id for every role, or one per role:
-
-```markdown
-- **Workers:** `claude` (all roles)
-- **Workers:** implement `claude`, PR `opencode`, fix `claude`
-```
-
-A role left out gets `claude`. The implement worker's harness has to load Matt Pocock's `tdd` and `code-review`, which the loop checks before the first ticket. [Harnesses](harnesses#workers) covers the check and what each harness needs.
 
 ## Why `CI: none` exists
 

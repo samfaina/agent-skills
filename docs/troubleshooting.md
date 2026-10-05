@@ -29,16 +29,9 @@ Every ticket left in the set has an open blocker. The report names them. Ship or
 
 ## Workers would load a different `tdd` or `code-review`
 
-The provenance check, which `/setup-ship-tickets` runs and `/ship-tickets` runs again before the first ticket, found that the implement worker's harness would load a `tdd` or `code-review` that isn't from [mattpocock/skills](https://github.com/mattpocock/skills). The report names the skill and its path.
+The provenance check, which `/setup-ship-tickets` runs and `/ship-tickets` runs again before the first ticket, found that the implement worker's harness would load a `tdd` or `code-review` that isn't from [mattpocock/skills](https://github.com/mattpocock/skills). The report names the skill and its path. If an implement worker later loads a different copy than the check found, the loop stops at that ticket and reports both paths.
 
-- **Claude Code:** install the plugin from Matt's marketplace (`/plugin marketplace add mattpocock/skills`, then `/plugin install mattpocock-skills@mattpocock`) or from the official one (`/plugin install mattpocock-skills@claude-plugins-official`).
-- **OpenCode:** it doesn't read Claude Code plugins. Run `npx skills add mattpocock/skills --agent opencode`. If OpenCode finds two skills with the same name, remove the one that isn't Matt's, because OpenCode may load either.
-
-If the skills came from a `git clone` or another place with no install record, the check can only compare their content, so it asks you to confirm the paths before the loop goes on. Declining counts as a failure.
-
-If an implement worker loaded a different copy than the check found, the loop stops at that ticket and reports both paths. A plugin update during the run moves the Claude Code skills to a new versioned folder and also stops the loop this way. If both paths are Matt's, run the skill again.
-
-[Harnesses](harnesses#the-skill-provenance-check) explains what the check looks at in each harness.
+[When the check fails](harnesses#when-the-check-fails) gives the fix for each case, and [the provenance check](harnesses#the-skill-provenance-check) explains what it looks at in each harness.
 
 ## A worker is missing `tdd` or `code-review`
 
@@ -58,7 +51,7 @@ Two fix workers couldn't get CI green. The PR stays open with the last attempt. 
 
 ## CI never starts
 
-No check started within 10 minutes of the PR opening. If no checks run on PRs in this repo, set `CI: none` in `shipping.md` (see the [reference](shipping-md#why-ci-none-exists)). Otherwise, check that your workflows trigger on `pull_request` for the base branch.
+No check started within 10 minutes of a push to the PR. If no checks run on PRs in this repo, set `CI: none` in `shipping.md` (see the [reference](shipping-md#why-ci-none-exists)). Otherwise, check that your workflows trigger on `pull_request` for the base branch.
 
 ## A worker couldn't be started
 
