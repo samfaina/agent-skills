@@ -45,7 +45,7 @@ For each field, take the value from the first source that settles it:
 
 A field is **settled** when one source gives one clear answer. Collect the unsettled ones, plus any inference resting on fewer than three examples, and ask about them with AskUserQuestion (four questions per call at most), each question offering the inferred value first.
 
-Ask about Workers in two rounds. First ask whether every worker role uses the same harness or each role gets its own. Then ask for the Orca agent id: one question for all roles, or one each for implement, PR and fix. Each question offers `claude` first; `orca orchestration worker-start --help` lists the other ids Orca knows, such as `codex` and `opencode`.
+Ask about Workers in two rounds. First ask whether every worker role uses the same agent or each role gets its own. Then ask for the Orca agent id: one question for all roles, or one per role. `orca orchestration worker-start --help` lists the ids Orca knows, such as `codex` and `opencode`.
 
 Done when every field in the template holds a value and the user has confirmed each unsettled one.
 
