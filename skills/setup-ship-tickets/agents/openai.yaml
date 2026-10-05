@@ -1,0 +1,5 @@
+interface:
+  display_name: "Set Up Ship Tickets"
+  short_description: "Prepare a repo and its shipping.md for ship-tickets"
+policy:
+  allow_implicit_invocation: false

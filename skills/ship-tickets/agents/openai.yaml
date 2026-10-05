@@ -1,0 +1,5 @@
+interface:
+  display_name: "Ship Tickets"
+  short_description: "Ship GitHub tickets one at a time with Orca workers"
+policy:
+  allow_implicit_invocation: false
