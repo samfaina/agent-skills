@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Run this skill only when the user invoked it by name. If you reached it any other way, stop and tell the user to run `setup-ship-tickets` themselves.
 
-Prepares the current repo for the `ship-tickets` skill. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file.
+Prepares the current repo for the `ship-tickets` skill. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file, unless the file on the default branch is already up to date.
 
 The format is `shipping-template.md`, in this skill's own folder. Read it before step 2: every field it lists gets a value, and the file you write keeps its structure.
 
@@ -50,7 +50,9 @@ Ask about Workers in two rounds. First ask whether every worker role uses the sa
 
 Once Workers is settled, run the provenance check for the implement worker's agent and record its result alongside the preflight checks. The check is `skill-provenance.md` in the `ship-tickets` skill's folder, which sits beside this skill's folder (`../ship-tickets/`).
 
-Done when every field in the template holds a value, the user has confirmed each unsettled one, and the provenance check has a recorded result.
+On an update, work out the file step 3 would write from the template and the values gathered here. If it is the same as the one on the default branch, nothing needs to change: skip step 3, create no worktree and open no PR, and go to **Report**.
+
+Done when every field in the template holds a value, the user has confirmed each unsettled one, the provenance check has a recorded result, and on an update you know whether the file changes.
 
 ## 3. Open the PR
 
@@ -68,5 +70,5 @@ Done when the PR is open and the worktree is removed.
 
 ## Report
 
-- The PR URL. `ship-tickets` can run once it merges.
+- The PR URL. `ship-tickets` can run once it merges. If step 3 was skipped, say instead that `shipping.md` is up to date and `ship-tickets` can run now.
 - Each preflight failure still open, with the fix the user needs. A failed provenance check names the skill and the path the worker would load it from.
