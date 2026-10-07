@@ -53,7 +53,7 @@ It works in three steps.
 
 **Merge that PR.** The loop always reads `shipping.md` from the remote default branch, so it runs the same from any worktree, and it won't start until the file is there.
 
-Running `/setup-ship-tickets` again later updates the file: it keeps the values you have and fills in fields it lacks, such as ones added in newer versions of the skills.
+Running `/setup-ship-tickets` again later updates the file: it keeps the values you have and fills in fields it lacks, such as ones added in newer versions of the skills. If nothing needs to change, it opens no PR and tells you `shipping.md` is up to date.
 
 ## Write tickets the loop can ship
 
