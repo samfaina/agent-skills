@@ -62,7 +62,7 @@ When a ticket can't be finished, the loop stops and leaves its worktree and PR a
 | `skills/setup-ship-tickets/shipping-template.md` | The format of `docs/agents/shipping.md`. |
 | `docs/` | The documentation site, published with GitHub Pages. |
 | `TESTING.md` | The checklist to run before each release. |
-| `testing/` | The sandbox repo the checklist ships tickets in: its files, its tickets, and `sandbox.sh`, which creates and resets it. |
+| `testing/` | The sandbox repo the checklist ships tickets in: its files, its tickets, and `sandbox.sh`, which creates and resets it. `run.sh` runs a case of the checklist unattended, and `verify.sh` checks its result. |
 
 Every skill is user-invoked. Codex CLI ignores `disable-model-invocation: true` in `SKILL.md` and reads `allow_implicit_invocation: false` in `agents/openai.yaml` instead, so change the two together.
 
