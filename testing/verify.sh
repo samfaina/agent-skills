@@ -16,12 +16,15 @@
 #                       case-insensitive (repeatable)
 #
 # Exits non-zero on the first failed check and names it.
-set -euo pipefail
+set -eEuo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+. "$here/lib.sh"
 
 usage() {
   echo "usage: verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… [tickets…]" >&2
   echo "       verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… --stopped" >&2
-  exit 2
+  exit 1
 }
 
 [ $# -ge 1 ] || usage
@@ -47,15 +50,8 @@ fail() {
   echo "FAIL  $*" >&2
   exit 1
 }
-
-# Evaluates a JavaScript expression over the JSON on stdin, as `d`, with the
-# remaining arguments as `a`. Arrays print one item per line. The script stays
-# on one line: Windows shims for node, such as Volta's, cut an argument at its
-# first newline. MSYS_NO_PATHCONV stops Git Bash rewriting a /regex/ as a path.
-js() {
-  local script='let s = ""; process.stdin.on("data", (c) => (s += c)).on("end", () => { const d = JSON.parse(s); const a = process.argv.slice(1); const r = eval(a[0]); if (r !== undefined && r !== null) console.log(Array.isArray(r) ? r.join("\n") : String(r)); });'
-  MSYS_NO_PATHCONV=1 node -e "$script" -- "$@"
-}
+# A gh, orca or node call that fails ends the run too, named like a check.
+trap 'echo "FAIL  command failed: $BASH_COMMAND" >&2' ERR
 
 # The run's start, and main's tip at that moment: the chain of merge commits
 # starts there.
@@ -80,14 +76,12 @@ check_log() {
 }
 
 check_orca() {
-  local repo_id left runs workers
-  repo_id=$(orca repo list --json | js \
-    'd.result.repos.filter((r) => r.gitRemoteIdentity?.canonicalKey?.toLowerCase() === `github.com/${a[1]}`.toLowerCase()).map((r) => r.id)' \
-    "$repo")
-  [ -n "$repo_id" ] || fail "Orca: $repo isn't added to Orca as a repo"
+  local repo_json repo_id left runs workers
+  repo_json=$(orca_repo "$repo")
+  [ "$repo_json" != null ] || fail "Orca: $repo isn't added to Orca as a repo"
+  repo_id=$(echo "$repo_json" | js 'd.id')
 
-  left=$(orca worktree list --repo "id:$repo_id" --json | js \
-    'd.result.worktrees.filter((w) => !w.isMainWorktree).map((w) => w.path)')
+  left=$(orca_worktrees "$repo_id")
   [ -z "$left" ] || fail "Orca: worktrees left for the sandbox: $(echo "$left" | tr '\n' ' ')"
   ok "Orca: no worktree left for the sandbox"
 
@@ -101,8 +95,10 @@ check_orca() {
   ok "Orca: no reclaimable worker in the sandbox"
 }
 
-prs_json=$(gh pr list --repo "$repo" --state all --limit 100 --search "created:>=$since" \
-  --json number,title,body,state,mergedAt,mergeCommit,headRefName,closingIssuesReferences)
+# The run's PRs, filtered here: the index behind --search lags new PRs.
+prs_json=$(gh pr list --repo "$repo" --state all --limit 100 \
+  --json number,title,body,state,createdAt,mergedAt,mergeCommit,headRefName,closingIssuesReferences \
+  | js 'JSON.stringify(d.filter((p) => p.createdAt >= a[1]))' "$since")
 
 if $stopped; then
   check_log

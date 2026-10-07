@@ -71,7 +71,8 @@ For a loop run, `verify.sh` checks that:
 - each PR's title is the issue title, its body has Summary and Testing and ends with `Closes #<n>`, and its branch starts with `<n>-`;
 - each ticket is closed and its remote branch deleted;
 - one PR's `changelog` check failed and then passed, so a fix worker ran;
-- no Orca worktree is left for the sandbox, and the run left no reclaimable worker.
+- no Orca worktree is left for the sandbox, and the run left no reclaimable worker;
+- the coordinator's report says the tickets merged.
 
 So that a fix worker always runs, `run.sh` forces one PR red: once the first ticket's PR opens, it pushes a commit that drops the PR's `CHANGELOG.md` line.
 
@@ -130,8 +131,10 @@ One run per row of the harness matrix. Each run ships all four tickets unless th
 | 3.4 | `claude` (all roles) | OpenCode on Windows, `SHELL` unset, so it runs `pwsh` | `/ship-tickets auto 3 2` | `bash testing/run.sh <sandbox> 3.4` |
 
 - [ ] 3.2 passes.
-- [ ] 3.3 passes. `run.sh` also checks that the coordinator started workers with both `--agent claude` and `--agent opencode`.
-- [ ] 3.4 passes. `run.sh` also checks that the coordinator called `orca.exe` and passed specs as single-quoted here-strings. By hand, compare the start of one worker's terminal with the implement spec in `skills/ship-tickets/ship-tickets-loop.md`: the spec must arrive intact, backticks and quotes included.
+- [ ] 3.3 passes.
+- [ ] 3.4 passes.
+
+Besides `verify.sh`'s checks, `run.sh` checks the commands each coordinator ran: it bound a Run and started workers with the agents Workers names (`--agent claude`, plus `--agent opencode` in 3.3). In 3.4 it also checks that the coordinator resolved `orca` with `Get-Command`, which finds `orca.exe` before `orca.cmd`, and passed the specs as single-quoted here-strings: the two things that get a spec to a worker intact on Windows.
 
 ### 3.1 by hand: Merge approval `ask`
 
