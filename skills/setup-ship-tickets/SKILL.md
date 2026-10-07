@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Run this skill only when the user invoked it by name. If you reached it any other way, stop and tell the user to run `setup-ship-tickets` themselves.
 
-Prepares the current repo for the `ship-tickets` skill. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file, unless the file on the default branch is already up to date.
+Prepares the current repo for the `ship-tickets` skill. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file, unless nothing in that file needs to change.
 
 The format is `shipping-template.md`, in this skill's own folder. Read it before step 2: every field it lists gets a value, and the file you write keeps its structure.
 
@@ -70,5 +70,5 @@ Done when the PR is open and the worktree is removed.
 
 ## Report
 
-- The PR URL. `ship-tickets` can run once it merges. If step 3 was skipped, say instead that `shipping.md` is up to date and `ship-tickets` can run now.
+- The PR URL. `ship-tickets` can run once it merges. If step 3 was skipped, say instead that `shipping.md` is up to date and `ship-tickets` can run now, or once the preflight failures below are fixed.
 - Each preflight failure still open, with the fix the user needs. A failed provenance check names the skill and the path the worker would load it from.
