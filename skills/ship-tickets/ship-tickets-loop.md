@@ -63,6 +63,8 @@ Accept `--outcome succeeded` when:
 - `git -C <path> status --porcelain` is empty;
 - the summary's `tdd:` and `code-review:` lines give the base directory of each skill the worker loaded, and the realpath of each matches the resolved folder from "Before the first ticket" (realpaths as `skill-provenance.md` defines them). On a mismatch, stop the loop and report both paths: the worker built or reviewed with a different skill.
 
+Some workers write those lines only after they settle. If the summary lacks them, look further before you release the worker: give it up to two minutes to go idle, then read its output with `orca orchestration worker-read --dispatch <dispatch_id> --limit 3000 --json` and take the lines from a later `worker_done` or from its terminal. Stop the loop only if they are in neither place, and say in the final report which tickets' lines came from the worker's output.
+
 Then `worker-release` and ack.
 
 ### 4. PR worker
@@ -70,6 +72,8 @@ Then `worker-release` and ack.
 A fresh agent in the same worktree: `worker-start --worktree issue:<n> --agent <PR agent> --task-title "#<n> PR"` with the PR spec, passed as in step 3. On an existing worktree Orca opens a new terminal, so this agent starts with an empty context.
 
 Accept when the `worker_done` summary names a PR, `git -C <path> status --porcelain` is empty, and `gh pr view <pr> --json state,headRefName,body` shows it `OPEN`, on the ticket's branch, with `Closes #<n>` in the body. A merged or closed PR is one an earlier branch with the same name left behind, not this ticket's. Release and ack.
+
+Then compare the PR's title and body with the PR format in `shipping.md` (`gh pr view <pr> --json title,body`). If the title differs or the body lacks a section, fix them with `gh pr edit <pr> --title <title> --body-file <file>`, writing <file> with your file-writing tool outside the repo, and say what you changed in the merge question and the final report.
 
 ### 5. CI
 
