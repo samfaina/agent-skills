@@ -92,8 +92,8 @@ Reset with `--no-shipping-md`, then delete the label: `gh label delete ready-for
 - [ ] It asks about the unsettled fields with `AskUserQuestion`, offering the inferred value first: Merge approval, Branch naming if it has fewer than three PRs to infer from, and Workers in two rounds (same agent for every role, then the agent id).
 - [ ] The provenance check passes for the implement worker's agent and names the `tdd` and `code-review` folders.
 - [ ] It shows the file and waits for your go-ahead before committing.
-- [ ] It opens a PR from `agents/shipping-config` adding `docs/agents/shipping.md`. The file follows `shipping-template.md`, and the PR body lists each value and where it came from.
-- [ ] `git worktree list` shows no worktree left by the setup.
+- [ ] It opens a PR from `agents/shipping-config` adding `docs/agents/shipping.md`. The file follows `shipping-template.md`: it opens with the single "Read by" line, no placeholder text is left, and **Body** lists the sections you confirmed. The PR body lists each value and where it came from.
+- [ ] `git worktree list` shows no worktree left by the setup, and `git status --porcelain` in the clone prints nothing.
 
 Close the PR without merging.
 

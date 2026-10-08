@@ -62,11 +62,17 @@ Work in a separate worktree, so the user's checkout stays as it is:
 git worktree add <tmp-dir> -b agents/shipping-config origin/<default>
 ```
 
-Write `docs/agents/shipping.md` there, following the template with its placeholder text replaced by the values from step 2. Drop the template's opening paragraph about copying the file, and take the line saying which skill reads it from the template, replacing an older one on an update. Show the user the file (or the diff, on an update) and wait for their go-ahead.
+Write `docs/agents/shipping.md` there, and nowhere else: setup writes nothing in the user's checkout. Follow the template with its placeholder text replaced by the values from step 2:
 
-Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default> --body-file <file>` with a body listing each value and where it came from. Write the body to <file> with your file-writing tool, outside the worktree, so that no shell rewrites its backticks, quotes or `$`. Remove the worktree with `git worktree remove <tmp-dir>`.
+- Keep the line saying which skill reads the file, taken from the template, and on an update replace an older one with it.
+- Drop the paragraph after it, about running setup or copying the file by hand.
+- Every field holds its value from step 2, in the form the template gives, such as `<id>` (all roles) for Workers. **Body** lists the confirmed sections in order, each with what it holds.
 
-Done when the PR is open and the worktree is removed.
+Before showing the file, compare it with the template line by line: no placeholder text, such as "the sections, in order, and what each holds" or "e.g.", is left. Then show the user the file (or the diff, on an update) and wait for their go-ahead.
+
+Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default> --body-file <file>` with a body listing each value and where it came from. Write the body to <file> with your file-writing tool, outside the worktree and the user's checkout, so that no shell rewrites its backticks, quotes or `$`. Remove the worktree with `git worktree remove <tmp-dir>`, and the body file.
+
+Done when the PR is open, the worktree and the body file are removed, and `git status --porcelain` in the user's checkout lists no file that setup wrote.
 
 ## Report
 

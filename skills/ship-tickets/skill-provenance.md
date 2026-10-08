@@ -20,7 +20,7 @@ Run it for the implement worker's agent, the only role whose spec calls these sk
 
 OpenCode does not read Claude Code plugin skills, so a plugin-only install fails here. The fix is `npx skills add mattpocock/skills`.
 
-1. Run `opencode debug skill --print-logs --log-level WARN`, with stderr, the log, going to a file of its own. Stdout is a JSON array with one entry per skill: `name`, `location` (the `SKILL.md` path) and the skill's full `content`, which runs long. Print only the `name` and `location` of the two skills, with the command for your shell. Don't merge stderr into stdout, and don't write a filter of your own.
+1. Run `opencode debug skill --print-logs --log-level WARN`, with stderr, the log, going to a file of its own outside the repo: `<log-file>` is `opencode-skill-log.txt` in the system temp folder, `${TMPDIR:-/tmp}` in bash and `$env:TEMP` in PowerShell. Stdout is a JSON array with one entry per skill: `name`, `location` (the `SKILL.md` path) and the skill's full `content`, which runs long. Print only the `name` and `location` of the two skills, with the command for your shell. Don't merge stderr into stdout, and don't write a filter of your own.
 
    In bash:
 
@@ -40,6 +40,7 @@ OpenCode does not read Claude Code plugin skills, so a plugin-only install fails
    - the lock file records `<skill>` with `source` `mattpocock/skills`: pass;
    - the lock file records `<skill>` with another source: fail, naming that source;
    - the folder is anywhere else, or its lock file does not record `<skill>` (a `git clone`, say): warn, and run the content check on `location`.
+5. Remove the log file.
 
 ## Any other harness
 
