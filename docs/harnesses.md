@@ -17,11 +17,11 @@ The coordinator and the workers don't have to share a harness. Your session can 
 
 | Harness | Version checked | Status |
 | --- | --- | --- |
-| [Claude Code](https://github.com/anthropics/claude-code) | 2.1.289 | Supported |
+| [Claude Code](https://github.com/anthropics/claude-code) | 2.1.294 | Supported |
 | [OpenCode](https://opencode.ai/) | 1.18.21 | Supported |
 | Codex CLI, Gemini CLI and others | | Untested |
 
-The skills were written against these versions and Orca 1.4.220, in October 2026. A repeatable test run of the full loop in each supported harness is still to come.
+The skills were tested with these versions and Orca 1.4.220 on Windows 11, on 8 October 2026. Each release runs the full loop in both harnesses with the checklist in [`TESTING.md`](https://github.com/samfaina/agent-skills/blob/main/TESTING.md); the last run is in [#30](https://github.com/samfaina/agent-skills/issues/30).
 
 Any other harness should work if it loads `SKILL.md` skills and Orca supports it as an agent. `orca orchestration worker-start --help` lists the agent ids Orca knows.
 
