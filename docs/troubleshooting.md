@@ -39,7 +39,7 @@ The implement worker couldn't load one of Matt's skills and settled as failed, n
 
 ## A worker failed
 
-A worker settled as failed, or its result didn't pass the coordinator's check (no commits, a dirty working tree, a PR without `Closes #<n>`).
+A worker settled as failed, or its result didn't pass the coordinator's check (no commits, a dirty working tree, a PR without `Closes #<n>`, or a PR that is already merged or closed because an earlier branch had the same name).
 
 1. Open the worktree in Orca and read the worker's terminal.
 2. Finish the ticket by hand, or fix what blocked the worker (an unclear ticket, a broken test setup) and remove the worktree with `orca worktree rm`.

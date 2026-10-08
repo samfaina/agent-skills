@@ -69,7 +69,7 @@ Then `worker-release` and ack.
 
 A fresh agent in the same worktree: `worker-start --worktree issue:<n> --agent <PR agent> --task-title "#<n> PR"` with the PR spec, passed as in step 3. On an existing worktree Orca opens a new terminal, so this agent starts with an empty context.
 
-Accept when the `worker_done` summary names a PR, `gh pr view <pr> --json headRefName,body` shows the ticket's branch, and the body contains `Closes #<n>`. Release and ack.
+Accept when the `worker_done` summary names a PR, and `gh pr view <pr> --json state,headRefName,body` shows it `OPEN`, on the ticket's branch, with `Closes #<n>` in the body. A merged or closed PR is one an earlier branch with the same name left behind, not this ticket's. Release and ack.
 
 ### 5. CI
 
@@ -143,9 +143,9 @@ Observable acceptance: every acceptance criterion in #<n> is met, the full test 
 ```text
 Target: branch <branch> in this worktree, which implements issue #<n>.
 
-Change: push the branch with `git push -u origin HEAD` and open a PR against <base> with `gh pr create`. Write the title and body as docs/agents/shipping.md describes, working from the commits (`git log origin/<base>..HEAD`), the diff and issue #<n>. The body ends with `Closes #<n>`.
+Change: push the branch with `git push -u origin HEAD` and open a new PR against <base> with `gh pr create --body-file <file>`. Write the title and body as docs/agents/shipping.md describes, working from the commits (`git log origin/<base>..HEAD`), the diff and issue #<n>. The body ends with `Closes #<n>`. Write the body to <file> with your file-writing tool, outside this worktree, so that no shell rewrites its backticks, quotes or `$`.
 
-Constraints: publish the code exactly as committed.
+Constraints: publish the code exactly as committed. Open the PR even if `gh pr view` or `gh pr list` finds one for this branch: a merged or closed PR from an earlier branch with the same name is not this ticket's. Take the URL from the output of `gh pr create`.
 
 Ownership: the branch on the remote and its PR.
 

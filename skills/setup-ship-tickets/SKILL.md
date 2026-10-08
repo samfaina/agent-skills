@@ -64,7 +64,7 @@ git worktree add <tmp-dir> -b agents/shipping-config origin/<default>
 
 Write `docs/agents/shipping.md` there, following the template with its placeholder text replaced by the values from step 2. Drop the template's opening paragraph about copying the file, and take the line saying which skill reads it from the template, replacing an older one on an update. Show the user the file (or the diff, on an update) and wait for their go-ahead.
 
-Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default>` with a body listing each value and where it came from. Remove the worktree with `git worktree remove <tmp-dir>`.
+Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default> --body-file <file>` with a body listing each value and where it came from. Write the body to <file> with your file-writing tool, outside the worktree, so that no shell rewrites its backticks, quotes or `$`. Remove the worktree with `git worktree remove <tmp-dir>`.
 
 Done when the PR is open and the worktree is removed.
 

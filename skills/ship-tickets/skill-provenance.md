@@ -20,9 +20,22 @@ Run it for the implement worker's agent, the only role whose spec calls these sk
 
 OpenCode does not read Claude Code plugin skills, so a plugin-only install fails here. The fix is `npx skills add mattpocock/skills`.
 
-1. Run `opencode debug skill --print-logs --log-level WARN 2> <log-file>`. Stdout is a JSON array with one entry per skill: `name`, `location` (the `SKILL.md` path) and the skill's full `content`. Read only `name` and `location`, because the content runs long.
+1. Run `opencode debug skill --print-logs --log-level WARN`, with stderr, the log, going to a file of its own. Stdout is a JSON array with one entry per skill: `name`, `location` (the `SKILL.md` path) and the skill's full `content`, which runs long. Print only the `name` and `location` of the two skills, with the command for your shell. Don't merge stderr into stdout, and don't write a filter of your own.
+
+   In bash:
+
+   ```bash
+   opencode debug skill --print-logs --log-level WARN 2> <log-file> | grep -oE '"(name|location)": *"[^"]*"' | grep -A1 -E '"name": *"(tdd|code-review)"'
+   ```
+
+   In PowerShell 7:
+
+   ```powershell
+   opencode debug skill --print-logs --log-level WARN 2> <log-file> | ConvertFrom-Json | Where-Object name -in 'tdd', 'code-review' | Select-Object name, location
+   ```
+
 2. `tdd` and `code-review` each have an entry. If one is missing, fail and give the fix above.
-3. For each of them, the log file may hold `duplicate skill name` lines with `name=<skill>`. Every `existing` and `duplicate` path on those lines must have the same realpath as the listed `location`. Otherwise fail, naming both paths: OpenCode may load either copy.
+3. For each of them, the log file may hold `duplicate skill name` lines with `name=<skill>`: `grep -E 'duplicate skill name.*name=(tdd|code-review) ' <log-file>` in bash, `Select-String 'duplicate skill name.*name=(tdd|code-review) ' <log-file>` in PowerShell. Every `existing` and `duplicate` path on those lines must have the same realpath as the listed `location`. Otherwise fail, naming both paths: OpenCode may load either copy.
 4. Take the realpath of the folder holding `location`. If it is `<repo>/.agents/skills/<skill>`, its lock file is the repo's `skills-lock.json`; if it is `~/.agents/skills/<skill>`, its lock file is `~/.agents/.skill-lock.json`. Then:
    - the lock file records `<skill>` with `source` `mattpocock/skills`: pass;
    - the lock file records `<skill>` with another source: fail, naming that source;
