@@ -61,7 +61,7 @@ Accept `--outcome succeeded` when:
 
 - `git -C <path> log origin/<base>..HEAD --oneline` lists commits;
 - `git -C <path> status --porcelain` is empty;
-- the summary gives the base directory of the `tdd` and the `code-review` the worker loaded, and the realpath of each matches the resolved folder from "Before the first ticket" (realpaths as `skill-provenance.md` defines them). On a mismatch, stop the loop and report both paths: the worker built or reviewed with a different skill.
+- the summary's `tdd:` and `code-review:` lines give the base directory of each skill the worker loaded, and the realpath of each matches the resolved folder from "Before the first ticket" (realpaths as `skill-provenance.md` defines them). On a mismatch, stop the loop and report both paths: the worker built or reviewed with a different skill.
 
 Then `worker-release` and ack.
 
@@ -69,14 +69,14 @@ Then `worker-release` and ack.
 
 A fresh agent in the same worktree: `worker-start --worktree issue:<n> --agent <PR agent> --task-title "#<n> PR"` with the PR spec, passed as in step 3. On an existing worktree Orca opens a new terminal, so this agent starts with an empty context.
 
-Accept when the `worker_done` summary names a PR, and `gh pr view <pr> --json state,headRefName,body` shows it `OPEN`, on the ticket's branch, with `Closes #<n>` in the body. A merged or closed PR is one an earlier branch with the same name left behind, not this ticket's. Release and ack.
+Accept when the `worker_done` summary names a PR, `git -C <path> status --porcelain` is empty, and `gh pr view <pr> --json state,headRefName,body` shows it `OPEN`, on the ticket's branch, with `Closes #<n>` in the body. A merged or closed PR is one an earlier branch with the same name left behind, not this ticket's. Release and ack.
 
 ### 5. CI
 
 If `shipping.md` sets **CI** to `none`, go to step 6. A file without the field means `required`. Otherwise wait for the checks in two parts:
 
 1. **Checks listed.** For the first minutes after a push GitHub lists no checks yet. Run `gh pr view <pr> --json statusCheckRollup --jq '.statusCheckRollup | length'` about every 30 seconds until it prints a number above 0. If it still prints 0 after 10 minutes, stop the loop: CI is `required` but no check started.
-2. **Checks settled.** Run `gh pr checks <pr> --watch --fail-fast --interval 30`. This can run for many minutes. If your harness notifies you when a background command exits, run it in the background. Otherwise run it in the foreground, and if it times out, run it again until it exits with a result; it is safe to rerun.
+2. **Checks settled.** Run `gh pr checks <pr> --watch --fail-fast --interval 30`. This can run for many minutes. If your harness notifies you when a background command exits, run it in the background: in Claude Code, with the Bash tool's `run_in_background`, then wait for the notification that it exited. Otherwise run it in the foreground, and if it times out, run it again until it exits with a result; it is safe to rerun.
 
 - **Exit 0 (green)** → step 6.
 - **Non-zero (red)** → start a **fix worker** in the same worktree: `worker-start --worktree issue:<n> --agent <fix agent> --task-title "#<n> fix"` with the fix spec and the CI failure as its reason. Accept it when it reports the fix pushed, then run step 5 again. A ticket gets at most **2** fix workers for CI. After the third red run, stop the loop.
@@ -128,6 +128,7 @@ Change: build what the ticket asks. Read it first with `gh issue view <n> --comm
 - Run typechecking and single test files as you go, and the full test suite once at the end.
 - Review your diff: call the Skill tool with `code-review` (in Claude Code, `mattpocock-skills:code-review`, not its built-in `code-review`), against `origin/<base>` with issue #<n> as the spec, and fix what it finds.
 - Commit to the current branch.
+- Settle with `worker_done`. End its summary with two lines: `tdd:` followed by the folder that holds the SKILL.md of the `tdd` you loaded, and `code-review:` followed by that of the `code-review`. Give each folder as your harness reported it when the skill loaded, or else the folder of the SKILL.md you read.
 
 If `tdd` or `code-review` is not available to you, stop, and settle with `--outcome failed`, naming the missing skill.
 
@@ -135,7 +136,7 @@ Constraints: follow the repo's agent instruction files (AGENTS.md, CLAUDE.md and
 
 Ownership: this worktree and its branch.
 
-Observable acceptance: every acceptance criterion in #<n> is met, the full test suite passes, and the work is committed with a clean working tree. The worker_done summary gives the base directory of the `tdd` skill and of the `code-review` skill you loaded: the folder holding each SKILL.md, as your harness reported it when the skill loaded, or else the folder of the SKILL.md you read.
+Observable acceptance: every acceptance criterion in #<n> is met, the full test suite passes, and the work is committed with a clean working tree. The worker_done summary ends with the `tdd:` and `code-review:` lines.
 ```
 
 ### PR spec
@@ -143,13 +144,13 @@ Observable acceptance: every acceptance criterion in #<n> is met, the full test 
 ```text
 Target: branch <branch> in this worktree, which implements issue #<n>.
 
-Change: push the branch with `git push -u origin HEAD` and open a new PR against <base> with `gh pr create --body-file <file>`. Write the title and body as docs/agents/shipping.md describes, working from the commits (`git log origin/<base>..HEAD`), the diff and issue #<n>. The body ends with `Closes #<n>`. Write the body to <file> with your file-writing tool, outside this worktree, so that no shell rewrites its backticks, quotes or `$`.
+Change: push the branch with `git push -u origin HEAD` and open a new PR against <base> with `gh pr create --body-file .pr-body.md`. Write the title and body as docs/agents/shipping.md describes, working from the commits (`git log origin/<base>..HEAD`), the diff and issue #<n>. The body ends with `Closes #<n>`. Write the body to `.pr-body.md` at the root of this worktree with your file-writing tool, so that no shell rewrites its backticks, quotes or `$`, and delete it once `gh pr create` has run. Never commit it.
 
 Constraints: publish the code exactly as committed. Open the PR even if `gh pr view` or `gh pr list` finds one for this branch: a merged or closed PR from an earlier branch with the same name is not this ticket's. Take the URL from the output of `gh pr create`.
 
 Ownership: the branch on the remote and its PR.
 
-Observable acceptance: the PR is open against <base>. Put its URL in the worker_done summary.
+Observable acceptance: the PR is open against <base>, `.pr-body.md` is deleted, and the working tree is clean. Put the PR's URL in the worker_done summary.
 ```
 
 ### Fix spec
