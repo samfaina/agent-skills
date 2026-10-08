@@ -144,7 +144,7 @@ Observable acceptance: every acceptance criterion in #<n> is met, the full test 
 ```text
 Target: branch <branch> in this worktree, which implements issue #<n>.
 
-Change: push the branch with `git push -u origin HEAD` and open a new PR against <base> with `gh pr create --body-file <file>`. Write the title and body as docs/agents/shipping.md describes, working from the commits (`git log origin/<base>..HEAD`), the diff and issue #<n>. The body ends with `Closes #<n>`. Write the body to `.pr-body.md` at the root of this worktree with your file-writing tool, so that no shell rewrites its backticks, quotes or `$`, pass it as <file>, and delete it once `gh pr create` has run. Never commit it.
+Change: push the branch with `git push -u origin HEAD` and open a new PR against <base> with `gh pr create --body-file .pr-body.md`. Write the title and body as docs/agents/shipping.md describes, working from the commits (`git log origin/<base>..HEAD`), the diff and issue #<n>. The body ends with `Closes #<n>`. Write the body to `.pr-body.md` at the root of this worktree with your file-writing tool, so that no shell rewrites its backticks, quotes or `$`, and delete it once `gh pr create` has run. Never commit it.
 
 Constraints: publish the code exactly as committed. Open the PR even if `gh pr view` or `gh pr list` finds one for this branch: a merged or closed PR from an earlier branch with the same name is not this ticket's. Take the URL from the output of `gh pr create`.
 
