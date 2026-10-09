@@ -57,6 +57,34 @@ Write down the versions. They go into `docs/harnesses.md` at the end:
 | mattpocock/skills, OpenCode (`~/.agents/.skill-lock.json`) | |
 | OS and shell for each run | |
 
+### OpenCode on a local model
+
+A model served by [Ollama](https://ollama.com/) has no request limit. OpenCode sends about 14k tokens with every request, and a run can reach 80k, so give the model a 128k context in a Modelfile of its own. Ollama's default context is much smaller, and it drops the overflow without saying so:
+
+```bash
+printf 'FROM qwen3.6:latest\nPARAMETER num_ctx 131072\n' > Modelfile
+ollama create qwen3.6-128k -f Modelfile
+```
+
+Then add Ollama as a provider in `opencode.json` and point `model` at it:
+
+```jsonc
+"model": "ollama/qwen3.6-128k",
+"provider": {
+  "ollama": {
+    "npm": "@ai-sdk/openai-compatible",
+    "options": { "baseURL": "http://localhost:11434/v1" },
+    "models": {
+      "qwen3.6-128k": { "tools": true, "limit": { "context": 131072, "output": 16384 } }
+    }
+  }
+}
+```
+
+Ollama unloads a model after 5 minutes without requests, and a coordinator can wait longer than that for CI. Set `OLLAMA_KEEP_ALIVE=30m` in the environment Ollama starts from, then restart Ollama.
+
+On 0.4.4, `qwen3.6` (36B MoE, Q4_K_M) on a 16 GB GPU and 62 GB of RAM loaded as 26 GB, 56% on the GPU, and left at least 21 GB of RAM free. 40 coordinator steps took 11 minutes. It isn't enough for the coordinator role: in two runs of 3.4 it stopped once to ask whether to start, and once after the first merge.
+
 ## Automated runs
 
 ```bash
