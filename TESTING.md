@@ -40,6 +40,7 @@ Once per machine:
 - [ ] `node` is on `PATH`. The scripts use it to read JSON.
 - [ ] **Claude Code:** the `agent-skills` and `mattpocock-skills` plugins are installed and enabled.
 - [ ] **OpenCode:** both sets of skills are installed with `npx skills add <repo> --agent opencode -g`, and `~/.config/opencode/opencode.json` denies both skills to the model ([Harnesses](docs/harnesses.md#keeping-the-skills-user-invoked)).
+- [ ] **OpenCode model:** `model` in `~/.config/opencode/opencode.json` (or `.jsonc`) names one model, such as `openrouter/thinkingmachines/inkling:free`. `run.sh` passes no `-m`, so every OpenCode coordinator and worker uses this model. Don't pick a router such as `openrouter/free`: it picks a different model for each request, so a failure can't be traced to one model. Free models are rate-limited. OpenRouter allows 20 requests a minute, and 50 a day until the account has bought 10 credits, then 1,000. The OpenCode coordinator in 3.2 alone made about 90 requests on 0.4.4. If the model hits its limit or keeps failing during a run, set another model, rerun the case, and write in its result which model it ran on.
 - [ ] **Windows:** `pwsh --version` is 7.3 or later.
 
 Write down the versions. They go into `docs/harnesses.md` at the end:
@@ -51,9 +52,48 @@ Write down the versions. They go into `docs/harnesses.md` at the end:
 | Orca | |
 | Claude Code (`claude --version`) | |
 | OpenCode (`opencode --version`) | |
+| OpenCode model (`model` in `opencode.json`) | |
 | mattpocock-skills, Claude Code (`claude plugin list`) | |
 | mattpocock/skills, OpenCode (`~/.agents/.skill-lock.json`) | |
 | OS and shell for each run | |
+
+### OpenCode on a local model
+
+A model served by [Ollama](https://ollama.com/) has no request limit. OpenCode sends about 14k tokens with every request, and a run can reach 80k, so give the model a 128k context in a Modelfile of its own. Ollama's default context is much smaller, and it drops the overflow without saying so:
+
+```bash
+printf 'FROM glm-4.7-flash\nPARAMETER num_ctx 131072\n' > Modelfile
+ollama create glm-4.7-flash-128k -f Modelfile
+```
+
+Then add Ollama as a provider in `opencode.json` and point `model` at it:
+
+```jsonc
+"model": "ollama/glm-4.7-flash-128k",
+"provider": {
+  "ollama": {
+    "npm": "@ai-sdk/openai-compatible",
+    "options": { "baseURL": "http://localhost:11434/v1" },
+    "models": {
+      "glm-4.7-flash-128k": { "tools": true, "limit": { "context": 131072, "output": 16384 } }
+    }
+  }
+}
+```
+
+Ollama unloads a model after 5 minutes without requests, and a coordinator can wait longer than that for CI. Set `OLLAMA_KEEP_ALIVE=30m` in the environment Ollama starts from, then restart Ollama. Load the model before you start a run, with `curl -s localhost:11434/api/generate -d '{"model":"glm-4.7-flash-128k"}'`, so the coordinator's first step doesn't wait for it: the first load of `glm-4.7-flash` took 5 minutes.
+
+On 0.4.4, on a 16 GB GPU with 62 GB of RAM, five models at Q4 with a 128k context ran two cases. In 3.4 the local model is the OpenCode coordinator. In 3.3 Claude Code coordinates, and the local model is the PR and fix worker. Minutes are for 3.4, then 3.3.
+
+| Model | Loaded | On GPU | 3.4 | 3.3 | Minutes | Lowest free RAM |
+| --- | --- | --- | --- | --- | --- | --- |
+| `glm-4.7-flash` | 26 GB | 60% | Merged #3 and #2 with a fix worker, but left the #3 PR worker unreleased | **PASS** | 42, 51 | 24 GB |
+| `laguna-xs-2.1` | 20 GB | 50% | Merged #3 and #2 without watching CI, over a red check, with no fix worker | Not run | 30 | 17 GB |
+| `qwen3.6` | 26 GB | 56% | Stopped once to ask whether to start, and once after the first merge | Merged 2 of 4; the PR worker for #2 ended its turn without opening the PR | 11, 39 | 21 GB |
+| `north-mini-code-1.0` | 19 GB | 64% | Ended its turn without a tool call before the first ticket | Not run | 3 | 25 GB |
+| `gpt-oss:20b` | 14 GB | 89% | Replied with text in its first step, telling the user to run the command | Not run | 1 | 32 GB |
+
+`glm-4.7-flash` can stand in as the PR and fix worker. None of the five is reliable enough to coordinate. The failures are the models', not the skills': cloud models passed the same cases on 0.4.4 ([#30](https://github.com/samfaina/agent-skills/issues/30)).
 
 ## Automated runs
 
