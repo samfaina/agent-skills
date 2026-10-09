@@ -40,6 +40,7 @@ Once per machine:
 - [ ] `node` is on `PATH`. The scripts use it to read JSON.
 - [ ] **Claude Code:** the `agent-skills` and `mattpocock-skills` plugins are installed and enabled.
 - [ ] **OpenCode:** both sets of skills are installed with `npx skills add <repo> --agent opencode -g`, and `~/.config/opencode/opencode.json` denies both skills to the model ([Harnesses](docs/harnesses.md#keeping-the-skills-user-invoked)).
+- [ ] **OpenCode model:** `model` in `~/.config/opencode/opencode.json` (or `.jsonc`) names one model, such as `openrouter/thinkingmachines/inkling:free`. `run.sh` passes no `-m`, so every OpenCode coordinator and worker uses this model. Don't pick a router such as `openrouter/free`: it picks a different model for each request, so a failure can't be traced to one model. Free models are rate-limited. OpenRouter allows 20 requests a minute, and 50 a day until the account has bought 10 credits, then 1,000. The OpenCode coordinator in 3.2 alone made about 90 requests on 0.4.4. If the model hits its limit or keeps failing during a run, set another model, rerun the case, and write in its result which model it ran on.
 - [ ] **Windows:** `pwsh --version` is 7.3 or later.
 
 Write down the versions. They go into `docs/harnesses.md` at the end:
@@ -51,6 +52,7 @@ Write down the versions. They go into `docs/harnesses.md` at the end:
 | Orca | |
 | Claude Code (`claude --version`) | |
 | OpenCode (`opencode --version`) | |
+| OpenCode model (`model` in `opencode.json`) | |
 | mattpocock-skills, Claude Code (`claude plugin list`) | |
 | mattpocock/skills, OpenCode (`~/.agents/.skill-lock.json`) | |
 | OS and shell for each run | |
