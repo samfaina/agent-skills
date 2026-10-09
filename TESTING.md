@@ -196,4 +196,5 @@ Reset with ``--workers '`opencode` (all roles)'``, and run `/ship-tickets` in Cl
 
 - [ ] Every failure has its own issue, linked from the release test issue.
 - [ ] `docs/harnesses.md` lists the versions from the table above and the date.
+- [ ] If every case passed, tag the commit next to the agent-skills version in the table above, and push the tag: `git tag v<version> <commit> && git push origin v<version>`. A version whose test failed gets no tag.
 - [ ] Delete the sandbox with `gh repo delete <sandbox> --yes`. It needs the `delete_repo` scope: `gh auth refresh -s delete_repo`.
