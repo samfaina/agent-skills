@@ -83,7 +83,7 @@ Then add Ollama as a provider in `opencode.json` and point `model` at it:
 
 Ollama unloads a model after 5 minutes without requests, and a coordinator can wait longer than that for CI. Set `OLLAMA_KEEP_ALIVE=30m` in the environment Ollama starts from, then restart Ollama.
 
-On 0.4.4, `qwen3.6` (36B MoE, Q4_K_M) on a 16 GB GPU and 62 GB of RAM loaded as 26 GB, 56% on the GPU, and left at least 21 GB of RAM free. 40 coordinator steps took 11 minutes. It isn't enough for the coordinator role: in two runs of 3.4 it stopped once to ask whether to start, and once after the first merge.
+On 0.4.4, `qwen3.6` (36B MoE, Q4_K_M) on a 16 GB GPU and 62 GB of RAM loaded as 26 GB, 56% on the GPU, and left at least 21 GB of RAM free. 40 coordinator steps took 11 minutes. It isn't enough for the coordinator role: in two runs of 3.4 it stopped once to ask whether to start, and once after the first merge. As the PR and fix worker in 3.3 it did better but still fell short: it opened two PRs whose bodies the coordinator had to fix, fixed a red check, and on the third ticket ended its turn without opening the PR.
 
 ## Automated runs
 
