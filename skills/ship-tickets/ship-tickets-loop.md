@@ -122,7 +122,7 @@ Per ticket in the set: **merged** (PR link), **stopped** (step, evidence, what t
 
 Each spec meets Orca's task-spec contract: Target, Change, Constraints, Ownership, Observable acceptance. Fill the `<placeholders>` and send the rest as written.
 
-<!-- Maintainers: this spec copies the steps of Matt Pocock's implement skill, which workers can't load. When you edit it, read https://github.com/samfaina/agent-skills/blob/main/docs/adr/0004-the-implement-spec-copies-matts-implement-skill.md -->
+<!-- Maintainers: before editing this spec, read https://github.com/samfaina/agent-skills/blob/main/docs/adr/0004-the-implement-spec-copies-matts-implement-skill.md -->
 
 ### Implement spec
 
