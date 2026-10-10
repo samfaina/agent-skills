@@ -7,11 +7,9 @@
 # upstream file with the copy saved in .github/upstream/implement-SKILL.md. The copy
 # lives outside skills/ because installers copy each skill's folder to users.
 #
-# When they differ, it opens an issue with the diff. While that issue is open, later
-# runs open no other one. To settle a drift:
-#   1. If the change applies to the loop, update the implement spec.
-#   2. Replace .github/upstream/implement-SKILL.md with the upstream file.
-#   3. Close the issue.
+# When they differ, it opens an issue with the diff and the steps to settle the drift.
+# While that issue is open, later runs open no other one. GitHub pauses scheduled
+# workflows in a repo with no activity for 60 days, so re-enable it there if it stops.
 
 name: Watch implement skill
 
@@ -36,21 +34,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           UPSTREAM_REPO: mattpocock/skills
           UPSTREAM_PATH: skills/engineering/implement/SKILL.md
-          SAVED: .github/upstream/implement-SKILL.md
-          SPEC: skills/ship-tickets/ship-tickets-loop.md
+          SAVED_COPY: .github/upstream/implement-SKILL.md
+          SPEC_FILE: skills/ship-tickets/ship-tickets-loop.md
           TITLE: Matt's implement skill changed
         run: |
           upstream=$(mktemp)
           gh api "repos/$UPSTREAM_REPO/contents/$UPSTREAM_PATH" \
             -H "Accept: application/vnd.github.raw" > "$upstream"
 
-          status=0
-          changes=$(diff -u --label "$SAVED" --label "upstream $UPSTREAM_PATH" "$SAVED" "$upstream") || status=$?
-          if [ "$status" -eq 0 ]; then
+          diff_status=0
+          changes=$(diff -u --label "$SAVED_COPY" --label "upstream $UPSTREAM_PATH" "$SAVED_COPY" "$upstream") || diff_status=$?
+          if [ "$diff_status" -eq 0 ]; then
             echo "No drift: the saved copy matches upstream."
             exit 0
-          elif [ "$status" -ne 1 ]; then
-            exit "$status"
+          elif [ "$diff_status" -ne 1 ]; then
+            exit "$diff_status"
           fi
           echo "$changes"
 
@@ -66,16 +64,16 @@ jobs:
           body=$(mktemp)
           {
             printf '`%s` in [%s](https://github.com/%s) no longer matches the copy saved in `%s`. ' \
-              "$UPSTREAM_PATH" "$UPSTREAM_REPO" "$UPSTREAM_REPO" "$SAVED"
-            printf 'The implement spec in `%s` copies the steps of that skill, so it may be out of date.\n\n' "$SPEC"
+              "$UPSTREAM_PATH" "$UPSTREAM_REPO" "$UPSTREAM_REPO" "$SAVED_COPY"
+            printf 'The implement spec in `%s` copies the steps of that skill, so it may be out of date.\n\n' "$SPEC_FILE"
             printf 'Upstream commits for the file: %s\n\n' "$history"
             printf '`````diff\n%s\n`````\n\n' "$changes"
             printf '## To settle it\n\n'
-            printf '1. If the change applies to the loop, update the implement spec in `%s`.\n' "$SPEC"
+            printf '1. If the change applies to the loop, update the implement spec in `%s`.\n' "$SPEC_FILE"
             printf '2. Replace the saved copy with the upstream file:\n\n'
             printf '   ```bash\n'
             printf '   gh api repos/%s/contents/%s -H "Accept: application/vnd.github.raw" > %s\n' \
-              "$UPSTREAM_REPO" "$UPSTREAM_PATH" "$SAVED"
+              "$UPSTREAM_REPO" "$UPSTREAM_PATH" "$SAVED_COPY"
             printf '   ```\n\n'
             printf '3. Close this issue.\n'
           } > "$body"
