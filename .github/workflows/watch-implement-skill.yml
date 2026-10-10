@@ -1,0 +1,83 @@
+# Watches Matt Pocock's implement skill for changes the implement spec doesn't have.
+#
+# The implement spec in skills/ship-tickets/ship-tickets-loop.md copies the steps of
+# skills/engineering/implement/SKILL.md from mattpocock/skills. It can't call the
+# skill, because the skill sets disable-model-invocation and a worker can't load it,
+# so a change upstream never reaches the loop. Each week this workflow compares the
+# upstream file with the copy saved in .github/upstream/implement-SKILL.md. The copy
+# lives outside skills/ because installers copy each skill's folder to users.
+#
+# When they differ, it opens an issue with the diff. While that issue is open, later
+# runs open no other one. To settle a drift:
+#   1. If the change applies to the loop, update the implement spec.
+#   2. Replace .github/upstream/implement-SKILL.md with the upstream file.
+#   3. Close the issue.
+
+name: Watch implement skill
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare with the saved copy
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_REPO: mattpocock/skills
+          UPSTREAM_PATH: skills/engineering/implement/SKILL.md
+          SAVED: .github/upstream/implement-SKILL.md
+          SPEC: skills/ship-tickets/ship-tickets-loop.md
+          TITLE: Matt's implement skill changed
+        run: |
+          upstream=$(mktemp)
+          gh api "repos/$UPSTREAM_REPO/contents/$UPSTREAM_PATH" \
+            -H "Accept: application/vnd.github.raw" > "$upstream"
+
+          status=0
+          changes=$(diff -u --label "$SAVED" --label "upstream $UPSTREAM_PATH" "$SAVED" "$upstream") || status=$?
+          if [ "$status" -eq 0 ]; then
+            echo "No drift: the saved copy matches upstream."
+            exit 0
+          elif [ "$status" -ne 1 ]; then
+            exit "$status"
+          fi
+          echo "$changes"
+
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 1000 \
+            --json number,title --jq '.[] | select(.title == env.TITLE) | .number' | head -n 1)
+          if [ -n "$existing" ]; then
+            echo "Drift is already reported in #$existing."
+            exit 0
+          fi
+
+          branch=$(gh api "repos/$UPSTREAM_REPO" --jq .default_branch)
+          history="https://github.com/$UPSTREAM_REPO/commits/$branch/$UPSTREAM_PATH"
+          body=$(mktemp)
+          {
+            printf '`%s` in [%s](https://github.com/%s) no longer matches the copy saved in `%s`. ' \
+              "$UPSTREAM_PATH" "$UPSTREAM_REPO" "$UPSTREAM_REPO" "$SAVED"
+            printf 'The implement spec in `%s` copies the steps of that skill, so it may be out of date.\n\n' "$SPEC"
+            printf 'Upstream commits for the file: %s\n\n' "$history"
+            printf '`````diff\n%s\n`````\n\n' "$changes"
+            printf '## To settle it\n\n'
+            printf '1. If the change applies to the loop, update the implement spec in `%s`.\n' "$SPEC"
+            printf '2. Replace the saved copy with the upstream file:\n\n'
+            printf '   ```bash\n'
+            printf '   gh api repos/%s/contents/%s -H "Accept: application/vnd.github.raw" > %s\n' \
+              "$UPSTREAM_REPO" "$UPSTREAM_PATH" "$SAVED"
+            printf '   ```\n\n'
+            printf '3. Close this issue.\n'
+          } > "$body"
+
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$body"
