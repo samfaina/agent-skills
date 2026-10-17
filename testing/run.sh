@@ -98,9 +98,10 @@ case $run in
     ;;
   auto-mode)
     # Auto mode refuses a merge no human approved, unless the sandbox's
-    # .claude/settings.json allow rule matches the merge, run on its own.
+    # .claude/settings.json allow rule matches the merge, run on its own with
+    # the Bash tool. Auto mode doesn't honor the rule for the PowerShell tool.
     claude_permissions=(--permission-mode auto) skill_args='auto 1' tickets=(1)
-    ran+=('^gh pr merge [0-9]+ --squash$')
+    ran+=('^Bash: gh pr merge [0-9]+ --squash$')
     ;;
   no-shipping-md) reset_args=(--no-shipping-md) stopped=true said=('setup-ship-tickets') ran=() ;;
   no-matt-skills) prepare=disable_matt_skills stopped=true said=('mattpocock-skills') ran=() ;;
@@ -253,7 +254,7 @@ echo "Coordinator exited with $(cat "$status")"
 # Splits the coordinator's JSON event log, from Claude Code or OpenCode, into
 # what it wrote (said) or the commands it ran (ran).
 transcript() {
-  local script='let s = ""; process.stdin.on("data", (c) => (s += c)).on("end", () => { const want = process.argv[1], out = []; for (const line of s.split("\n")) { let e; try { e = JSON.parse(line); } catch { continue; } if (e.type === "assistant") for (const c of e.message.content) { if (want === "said" && c.type === "text") out.push(c.text); if (want === "ran" && c.type === "tool_use" && c.input.command) out.push(c.input.command); } if (want === "said" && e.type === "text") out.push(e.part.text); if (want === "ran" && e.type === "tool_use" && e.part?.state?.input?.command) out.push(e.part.state.input.command); } console.log(out.join("\n")); });'
+  local script='let s = ""; process.stdin.on("data", (c) => (s += c)).on("end", () => { const want = process.argv[1], out = []; for (const line of s.split("\n")) { let e; try { e = JSON.parse(line); } catch { continue; } if (e.type === "assistant") for (const c of e.message.content) { if (want === "said" && c.type === "text") out.push(c.text); if (want === "ran" && c.type === "tool_use" && c.input.command) out.push(c.name + ": " + c.input.command); } if (want === "said" && e.type === "text") out.push(e.part.text); if (want === "ran" && e.type === "tool_use" && e.part?.state?.input?.command) out.push(e.part.state.input.command); } console.log(out.join("\n")); });'
   MSYS_NO_PATHCONV=1 node -e "$script" -- "$1" < "$log"
 }
 transcript said > "${log%.log}.said.txt"

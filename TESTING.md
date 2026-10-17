@@ -176,7 +176,7 @@ One run per row of the harness matrix. Each run ships all four tickets unless th
 - [ ] 3.2 passes.
 - [ ] 3.3 passes.
 - [ ] 3.4 passes.
-- [ ] `bash testing/run.sh <sandbox> auto-mode` passes. It runs `/ship-tickets auto 1` in Claude Code with permission checks on (`--permission-mode auto`), where every other Claude Code run skips them. Auto mode refuses a merge no human approved, so the run merges only if the sandbox's merge rule matches the merge command and the coordinator runs that command on its own.
+- [ ] `bash testing/run.sh <sandbox> auto-mode` passes. It runs `/ship-tickets auto 1` in Claude Code with permission checks on (`--permission-mode auto`), where every other Claude Code run skips them. Auto mode refuses a merge no human approved, so the run merges only if the sandbox's merge rule matches the merge command and the coordinator runs that command on its own, with the Bash tool. `run.sh` checks that it did: auto mode doesn't honor the rule for the PowerShell tool.
 
 Besides `verify.sh`'s checks, `run.sh` checks the commands each coordinator ran: it bound a Run and started workers with the agents Workers names (`--agent claude`, plus `--agent opencode` in 3.3). In 3.4 it also checks that the coordinator resolved `orca` with `Get-Command`, which finds `orca.exe` before `orca.cmd`, and passed the specs as single-quoted here-strings: the two things that get a spec to a worker intact on Windows.
 
