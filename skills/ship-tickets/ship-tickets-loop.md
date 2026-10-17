@@ -100,10 +100,10 @@ Once merged, confirm the merge closed the ticket: `gh issue view <n> --json stat
 ### 7. Clean up
 
 1. Apply the post-merge cleanup from `shipping.md` (for example deleting the remote branch).
-2. `orca worktree rm --worktree issue:<n> --json`. This also deletes the local branch once Orca can prove it merged.
+2. `orca worktree rm --worktree issue:<n> --json`. This also deletes the local branch once Orca can prove it merged. Run it as a command of its own, with nothing chained before or after it, and write out the `orca` executable from "Before the first ticket" rather than a variable that holds it, so the harness's permission check sees what runs. If the harness's permission check refuses it (a permission denial, as opposed to an error from Orca), leave the worktree in place and carry on: keep the exact command for the final report, for the user to run.
 3. `orca orchestration worker-list --run <run_id> --terminal-state reclaimable --json` returns no rows.
 
-Done when the PR is merged, the ticket is closed, the worktree is removed and no worker is left reclaimable. Then go back to step 1.
+Done when the PR is merged, the ticket is closed, the worktree is removed or its removal was refused, and no worker is left reclaimable. Then go back to step 1.
 
 ## Stopping
 
@@ -116,7 +116,7 @@ Stop the loop and leave the ticket's worktree and PR exactly as they are when:
 
 ## Final report
 
-Per ticket in the set: **merged** (PR link, and whether the user approved a merge the harness refused), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it, or the failed provenance check).
+Per ticket in the set: **merged** (PR link, whether the user approved a merge the harness refused, and the `worktree rm` command for any removal the harness refused), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it, or the failed provenance check).
 
 ## Specs
 

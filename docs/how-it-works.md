@@ -92,7 +92,7 @@ After the merge, the coordinator checks the issue closed, and closes it with a c
 
 ## 7. Clean up
 
-The coordinator runs the after-merge step from `shipping.md` (deleting the remote branch, for example), removes the worktree, and checks that no worker from the run is left behind. Then it picks the next ticket.
+The coordinator runs the after-merge step from `shipping.md` (deleting the remote branch, for example), removes the worktree, and checks that no worker from the run is left behind. Then it picks the next ticket. If the harness refuses to remove the worktree, the coordinator leaves it and the final report gives you the command to remove it.
 
 ## Workers and specs
 
