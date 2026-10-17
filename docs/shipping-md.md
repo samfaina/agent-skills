@@ -19,7 +19,7 @@ The loop reads the file from the remote default branch, so edits take effect onc
 | --- | --- | --- |
 | **Base branch** | The branch tickets merge into, usually the default branch. | Worktree creation, PR base, CI, merge |
 | **Merge method** | `merge`, `squash` or `rebase`, passed to `gh pr merge --<method>`. Use one your repo settings allow. | Merge |
-| **Merge approval** | `ask` (once CI is green, the loop shows you the PR and waits for **Merge**, **Request changes** or **Stop**) or `auto` (the loop merges as soon as CI is green). A file without this field counts as `ask`. `/ship-tickets ask` or `/ship-tickets auto` overrides it for one run. | Merge |
+| **Merge approval** | `ask` (once CI is green, the loop shows you the PR and waits for **Merge**, **Request changes** or **Stop**) or `auto` (the loop merges as soon as CI is green). A file without this field counts as `ask`. `/ship-tickets ask` or `/ship-tickets auto` overrides it for one run. In Claude Code's auto mode, `auto` also needs the [merge rule](#the-merge-rule-for-claude-codes-auto-mode). | Merge |
 | **Branch naming** | How to turn a ticket into a worktree name, such as the kebab-case issue title. Note any prefix Orca adds to the branch. | Worktree creation |
 | **After merge** | What to do once the PR merges, such as deleting the remote branch, or "nothing" when GitHub deletes it for you. | Clean up |
 | **CI** | `required` (the loop waits for checks to pass) or `none` (no checks run on PRs, so the loop merges without waiting). A file without this field counts as `required`. | CI |
@@ -50,6 +50,30 @@ Read by the `ship-tickets` skill (samfaina/agent-skills).
   2. **Testing**: the tests added and how to check the change by hand.
   3. `Closes #<n>`
 ```
+
+## The merge rule for Claude Code's auto mode
+
+Claude Code's auto mode refuses a `gh pr merge` that no human approved. So with Merge approval `auto`, a coordinator running in that mode stops at the merge and asks you, as if the field said `ask`. The approval you give covers only that one PR.
+
+An allow rule in the repo's `.claude/settings.json` lets the merge through, because Claude Code settles allow rules before auto mode looks at a command. When you pick `auto`, `/setup-ship-tickets` offers to add one to the same PR as `shipping.md`, for your merge method:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr merge * --squash)",
+      "PowerShell(gh pr merge * --squash)"
+    ]
+  }
+}
+```
+
+- The rule applies to every Claude Code session in the repo, not only the loop. Any of them may run that merge command without asking.
+- Claude Code reads the file from your local checkout. Once the PR merges, pull the default branch into the checkout you run `/ship-tickets` from, and start a new session.
+- The coordinator runs the merge as a command of its own, so that the rule matches it.
+- The rule follows the merge method. If you change **Merge method**, run `/setup-ship-tickets` again to add a matching rule.
+
+Without the rule, `auto` still works in every other harness and in Claude Code's other permission modes.
 
 ## Why `CI: none` exists
 

@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Run this skill only when the user invoked it by name. If you reached it any other way, stop and tell the user to run `setup-ship-tickets` themselves.
 
-Prepares the current repo for the `ship-tickets` skill. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file, unless nothing in that file needs to change.
+Prepares the current repo for the `ship-tickets` skill. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file, plus the Claude Code merge rule from step 2 when the user wants it, unless nothing needs to change.
 
 The format is `shipping-template.md`, in this skill's own folder. Read it before step 2: every field it lists gets a value, and the file you write keeps its structure.
 
@@ -50,9 +50,18 @@ Ask about Workers in two rounds. First ask whether every worker role uses the sa
 
 Once Workers is settled, run the provenance check for the implement worker's agent and record its result alongside the preflight checks. The check is `skill-provenance.md` in the `ship-tickets` skill's folder, which sits beside this skill's folder (`../ship-tickets/`).
 
-On an update, work out the file step 3 would write from the template and the values gathered here. If it is the same as the one on the default branch, nothing needs to change: skip step 3, create no worktree and open no PR, and go to **Report**.
+With Merge approval `auto`, offer the **merge rule**. Claude Code's auto mode refuses a `gh pr merge` that no human approved, so without the rule a coordinator in Claude Code asks before each merge whatever `shipping.md` says. A matching allow rule in the repo's `.claude/settings.json` is settled before that check runs. The rule is these two `permissions.allow` entries, where `<method>` is the Merge method:
 
-Done when every field in the template holds a value, the user has confirmed each unsettled one, the provenance check has a recorded result, and on an update you know whether the file changes.
+```text
+Bash(gh pr merge * --<method>)
+PowerShell(gh pr merge * --<method>)
+```
+
+Read `git show origin/<default>:.claude/settings.json`. If both entries are already there, the rule is settled. Otherwise ask the user whether to add it, offering **Add** first. Say what it does: any Claude Code session in this repo, not only the loop, may then run that merge command without asking. The user's answer is the authorization to add it: add the rule only on **Add**. On a decline, say that a coordinator in Claude Code's auto mode will ask before each merge. With Merge approval `ask`, offer no rule and leave any rule already in the file as it is.
+
+On an update, work out the files step 3 would write: `shipping.md` from the template and the values gathered here, and `.claude/settings.json` if the user chose **Add**. If `shipping.md` is the same as the one on the default branch and no rule is to be added, nothing needs to change: skip step 3, create no worktree and open no PR, and go to **Report**.
+
+Done when every field in the template holds a value, the user has confirmed each unsettled one, the provenance check has a recorded result, the merge rule is settled, added or declined (or skipped for `ask`), and on an update you know whether any file changes.
 
 ## 3. Open the PR
 
@@ -62,19 +71,24 @@ Work in a separate worktree, so the user's checkout stays as it is:
 git worktree add <tmp-dir> -b agents/shipping-config origin/<default>
 ```
 
-Write `docs/agents/shipping.md` there, and nowhere else: setup writes nothing in the user's checkout. Follow the template with its placeholder text replaced by the values from step 2:
+Write every file there, and nowhere else: setup writes nothing in the user's checkout. Write `docs/agents/shipping.md` following the template, with its placeholder text replaced by the values from step 2:
 
 - Keep the line saying which skill reads the file, taken from the template, and on an update replace an older one with it.
 - Drop the paragraph after it, about running setup or copying the file by hand.
 - Every field holds its value from step 2, in the form the template gives, such as `<id>` (all roles) for Workers. **Body** lists the confirmed sections in order, each with what it holds.
 
-Before showing the file, compare it with the template line by line: no placeholder text, such as "the sections, in order, and what each holds" or "e.g.", is left. Then show the user the file (or the diff, on an update) and wait for their go-ahead.
+Before showing `shipping.md`, compare it with the template line by line: no placeholder text, such as "the sections, in order, and what each holds" or "e.g.", is left.
 
-Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default> --body-file <file>` with a body listing each value and where it came from. Write the body to <file> with your file-writing tool, outside the worktree and the user's checkout, so that no shell rewrites its backticks, quotes or `$`. Remove the worktree with `git worktree remove <tmp-dir>`, and the body file.
+If the user chose **Add** in step 2, write the merge rule to `.claude/settings.json` in the same worktree. When the file exists, keep every key and entry it has and append the missing entries to `permissions.allow`; otherwise create it holding only `{"permissions": {"allow": [<the two entries>]}}`. Check that it parses as JSON.
+
+Show the user each file you wrote (or the diff, on an update) and wait for their go-ahead.
+
+Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default> --body-file <file>` with a body listing each value and where it came from, and the merge rule with why it is there when the PR adds it. Write the body to <file> with your file-writing tool, outside the worktree and the user's checkout, so that no shell rewrites its backticks, quotes or `$`. Remove the worktree with `git worktree remove <tmp-dir>`, and the body file.
 
 Done when the PR is open, the worktree and the body file are removed, and `git status --porcelain` in the user's checkout lists no file that setup wrote.
 
 ## Report
 
 - The PR URL. `ship-tickets` can run once it merges. If step 3 was skipped, say instead that `shipping.md` is up to date and `ship-tickets` can run now, or once the preflight failures below are fixed.
+- If the PR adds the merge rule: Claude Code reads `.claude/settings.json` from the local checkout, not the remote, so pull the default branch into the checkout the coordinator runs in once the PR merges, then start the coordinator in a new session.
 - Each preflight failure still open, with the fix the user needs. A failed provenance check names the skill and the path the worker would load it from.

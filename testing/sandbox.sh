@@ -51,9 +51,9 @@ reset() {
       echo "  Workers: $workers"
     fi
     if $no_shipping_md; then
-      git rm --quiet docs/agents/shipping.md
-      git commit --quiet -m "Remove shipping.md for a setup test run"
-      echo "  removed docs/agents/shipping.md"
+      git rm --quiet --ignore-unmatch docs/agents/shipping.md .claude/settings.json
+      git commit --quiet -m "Remove shipping.md and the merge rule for a setup test run"
+      echo "  removed docs/agents/shipping.md and .claude/settings.json"
     fi
     git push --quiet --force origin main
 

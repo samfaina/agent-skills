@@ -65,6 +65,10 @@ On Windows, `orca` resolved to `orca.cmd`, which cuts a multi-line spec at its f
 
 **Merge approval** is `ask`, which is also what a `shipping.md` without the field gets. To merge as soon as CI is green, set `Merge approval: auto` in `shipping.md`, or run `/ship-tickets auto` for one run.
 
+## The loop asks before a merge with Merge approval `auto`
+
+The coordinator runs in Claude Code's auto mode, which refused the merge because no human approved it. The coordinator tells you so and asks you instead. Pick **Merge** to merge that PR. To merge without asking, add the [merge rule](shipping-md#the-merge-rule-for-claude-codes-auto-mode): run `/setup-ship-tickets`, pick **Add**, merge its PR and pull it into your checkout.
+
 ## You chose Stop
 
 The PR stays open as it is, and the loop ends. Merge or close it yourself, then run the skill again for the tickets that are left.
