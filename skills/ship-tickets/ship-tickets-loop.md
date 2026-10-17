@@ -87,7 +87,7 @@ If `shipping.md` sets **CI** to `none`, go to step 6. A file without the field m
 
 ### 6. Merge
 
-Merge with the merge method from `shipping.md`: run `gh pr merge <pr> --<method>` as a command of its own, with nothing chained before or after it. The Claude Code allow rule that `setup-ship-tickets` adds matches only that exact command. The merge approval from "Before the first ticket" decides whether the user approves it first:
+Merge with the merge method from `shipping.md`: run `gh pr merge <pr> --<method>` as a command of its own, with nothing chained before or after it. The Claude Code allow rule that `setup-ship-tickets` adds matches only that exact command. If your harness has a Bash tool, run the merge with it, even when you run your other commands in PowerShell: Claude Code's auto mode honors the rule for the Bash tool, but sends a merge from its PowerShell tool to the classifier, which may refuse it. The merge approval from "Before the first ticket" decides whether the user approves it first:
 
 - **`auto`** → merge now. If the harness's permission check refuses the merge (a permission denial, as opposed to an error from `gh`), handle this ticket as `ask`: the user's answer is then what authorizes the merge. If the harness refuses `gh pr view` too, ask with the URL and title from step 4. Say in the merge question that the harness refused the unattended merge, and in the final report that `setup-ship-tickets` can add the allow rule that lets `auto` merge without asking.
 - **`ask`** → show the user the PR URL, its title and its size (`gh pr view <pr> --json url,title,additions,deletions,changedFiles`), then ask them to pick one and wait for the answer; if your harness has a structured question tool, use it:

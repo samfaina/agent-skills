@@ -69,6 +69,8 @@ On Windows, `orca` resolved to `orca.cmd`, which cuts a multi-line spec at its f
 
 The coordinator runs in Claude Code's auto mode, which refused the merge because no human approved it. The coordinator tells you so and asks you instead. Pick **Merge** to merge that PR. To merge without asking, add the [merge rule](shipping-md#the-merge-rule-for-claude-codes-auto-mode): run `/setup-ship-tickets`, pick **Add**, merge its PR and pull it into your checkout.
 
+If the repo already has the rule, check which tool ran the merge. From Claude Code's PowerShell tool, auto mode sends the merge to the classifier even when the rule matches, so the loop runs it with the Bash tool. A coordinator on a version of the skill older than 0.5.1 may still use PowerShell.
+
 ## You chose Stop
 
 The PR stays open as it is, and the loop ends. Merge or close it yourself, then run the skill again for the tickets that are left.

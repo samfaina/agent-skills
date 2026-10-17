@@ -70,7 +70,7 @@ An allow rule in the repo's `.claude/settings.json` lets the merge through, beca
 
 - The rule applies to every Claude Code session in the repo, not only the loop. Any of them may run that merge command without asking.
 - Claude Code reads the file from your local checkout. Once the PR merges, pull the default branch into the checkout you run `/ship-tickets` from, and start a new session.
-- The coordinator runs the merge as a command of its own, so that the rule matches it.
+- The coordinator runs the merge as a command of its own, so that the rule matches it, and with the Bash tool. Auto mode honors the rule for the Bash tool only: from the PowerShell tool, the classifier still checks the merge and often refuses it, even when the `PowerShell(...)` entry matches.
 - The rule follows the merge method. If you change **Merge method**, run `/setup-ship-tickets` again to add a matching rule.
 
 Without the rule, `auto` still works in every other harness and in Claude Code's other permission modes.
