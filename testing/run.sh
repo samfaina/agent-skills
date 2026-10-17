@@ -5,8 +5,9 @@
 #
 # Resets the sandbox, starts the coordinator non-interactively in an Orca
 # terminal in the sandbox's clone, waits for it, and ends with verify.sh's
-# result. Runs: 3.2 3.3 3.4 no-shipping-md no-matt-skills two-tdd blocked
-# setup-noop outside-orca. The coordinator's output goes to testing/logs/.
+# result. Runs: 3.2 3.3 3.4 auto-mode no-shipping-md no-matt-skills two-tdd
+# blocked setup-noop outside-orca. The coordinator's output goes to
+# testing/logs/.
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -14,7 +15,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 
 usage() {
   echo "usage: run.sh <owner/repo> <run> [--coordinator claude|opencode]" >&2
-  echo "runs: 3.2 3.3 3.4 no-shipping-md no-matt-skills two-tdd blocked setup-noop outside-orca" >&2
+  echo "runs: 3.2 3.3 3.4 auto-mode no-shipping-md no-matt-skills two-tdd blocked setup-noop outside-orca" >&2
   exit 1
 }
 
@@ -77,7 +78,10 @@ copy_tdd() {
 # run must reach; `stopped` runs must stop before their first ticket instead.
 # `said` patterns must match what the coordinator wrote, `ran` patterns the
 # commands it ran. `prepare` breaks what the run tests, after the reset.
+# `claude_permissions` is how a Claude Code coordinator gets past permission
+# checks: skipped for every run but auto-mode, which keeps them on.
 reset_args=() coordinator=claude skill=ship-tickets skill_args=auto prepare=''
+claude_permissions=(--dangerously-skip-permissions)
 tickets=(1 3 2 4) stopped=false in_orca=true unset_shell=false
 said=('merged') ran=('run-create')
 case $run in
@@ -91,6 +95,12 @@ case $run in
     coordinator=opencode unset_shell=true skill_args='auto 3 2' tickets=(3 2)
     # pwsh finds orca.exe before orca.cmd, so a bare `orca` there runs orca.exe.
     ran+=('--agent claude' 'Get-Command orca' "@'")
+    ;;
+  auto-mode)
+    # Auto mode refuses a merge no human approved, unless the sandbox's
+    # .claude/settings.json allow rule matches the merge, run on its own.
+    claude_permissions=(--permission-mode auto) skill_args='auto 1' tickets=(1)
+    ran+=('^gh pr merge [0-9]+ --squash$')
     ;;
   no-shipping-md) reset_args=(--no-shipping-md) stopped=true said=('setup-ship-tickets') ran=() ;;
   no-matt-skills) prepare=disable_matt_skills stopped=true said=('mattpocock-skills') ran=() ;;
@@ -115,6 +125,7 @@ esac
 if [ -n "$coordinator_override" ]; then
   case $coordinator_override in claude | opencode) ;; *) usage ;; esac
   [ "$run" != 3.4 ] || { echo "Run 3.4 is OpenCode only." >&2; exit 1; }
+  [ "$run" != auto-mode ] || { echo "Run auto-mode is Claude Code only." >&2; exit 1; }
   coordinator=$coordinator_override
 fi
 
@@ -183,7 +194,7 @@ since=$(date -u +%FT%TZ)
 
 case $coordinator in
   claude)
-    command=(claude -p "/$skill${skill_args:+ $skill_args}" --dangerously-skip-permissions --output-format stream-json --verbose) ;;
+    command=(claude -p "/$skill${skill_args:+ $skill_args}" "${claude_permissions[@]}" --output-format stream-json --verbose) ;;
   opencode)
     command=(opencode run --command "$skill" --auto --format json)
     # The arguments are words without spaces, so splitting them is safe.

@@ -84,7 +84,7 @@ The coordinator merges with the merge method from `shipping.md`. The merge appro
 | Merge approval | What happens |
 | --- | --- |
 | `ask` (default) | Shows you the PR link, title and size, and asks: **Merge**, **Request changes** or **Stop**. Requested changes go to a fix worker, then back through CI and this question. Review rounds have no limit. |
-| `auto` | Merges right away. |
+| `auto` | Merges right away. If the harness refuses the merge, as Claude Code's auto mode does without the [merge rule](shipping-md#the-merge-rule-for-claude-codes-auto-mode), it asks you as with `ask`. |
 
 The coordinator asks with its harness's question tool where it has one, and in plain text otherwise. [Harnesses](harnesses#asking-you-a-question) shows what to expect in each.
 
