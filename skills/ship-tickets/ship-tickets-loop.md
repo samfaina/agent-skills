@@ -53,7 +53,11 @@ $spec = @'
 orca orchestration worker-start --worktree issue:<n> --agent <implement agent> --task-title "#<n> implement" --spec "$spec" --json
 ```
 
-Pass every spec this way. Then wait as the guide says (`check --wait --types worker_done,escalation,question`).
+Pass every spec this way.
+
+Orca titles each worker's tab `worker-<task id>`, which doesn't say which ticket or role it is. Give the tab the task title: take the handle from `orca orchestration worker-show --dispatch <dispatch_id> --json` (`agentTerminalHandle`), then run `orca terminal rename --terminal <handle> --title "#<n> implement"`. Do the same for every worker you start below, with its own task title. The title only labels the tab, since Orca tracks the worker by its dispatch and handle. If the worker has no terminal handle or the rename fails, carry on.
+
+Then wait as the guide says (`check --wait --types worker_done,escalation,question`).
 
 Answer each worker `question` with `reply`. Answer from the ticket and the repo when they hold the answer, otherwise ask the user and relay what they say.
 
