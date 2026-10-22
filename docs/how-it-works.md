@@ -100,4 +100,6 @@ Each worker starts in the harness that the **Workers** field in `shipping.md` na
 
 Every worker gets a written spec with the same five parts: **Target**, **Change**, **Constraints**, **Ownership** and **Observable acceptance**. The last one is the check the coordinator runs before accepting the work. A worker reporting success isn't enough on its own.
 
+The coordinator renames each worker's Orca tab after its task, such as `#46 implement`, `#46 PR` or `#46 fix`, in place of Orca's `worker-<task id>`.
+
 Workers in the same worktree don't share context. Each one starts empty, reads the issue, the repo and its spec, and settles with a single result.
