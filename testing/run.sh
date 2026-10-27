@@ -5,8 +5,8 @@
 #
 # Resets the sandbox, starts the coordinator non-interactively in an Orca
 # terminal in the sandbox's clone, waits for it, and ends with verify.sh's
-# result. Runs: 3.2 3.3 3.4 auto-mode no-shipping-md no-matt-skills two-tdd
-# blocked setup-noop outside-orca. The coordinator's output goes to
+# result. Runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills
+# two-tdd blocked setup-noop outside-orca. The coordinator's output goes to
 # testing/logs/.
 set -euo pipefail
 
@@ -15,7 +15,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 
 usage() {
   echo "usage: run.sh <owner/repo> <run> [--coordinator claude|opencode]" >&2
-  echo "runs: 3.2 3.3 3.4 auto-mode no-shipping-md no-matt-skills two-tdd blocked setup-noop outside-orca" >&2
+  echo "runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills two-tdd blocked setup-noop outside-orca" >&2
   exit 1
 }
 
@@ -102,6 +102,11 @@ case $run in
     # the Bash tool. Auto mode doesn't honor the rule for the PowerShell tool.
     claude_permissions=(--permission-mode auto) skill_args='auto 1' tickets=(1)
     ran+=('^Bash: gh pr merge [0-9]+ --squash$')
+    ;;
+  order)
+    # The numbers set the order, and #2 waits for #3, then takes its place
+    # again ahead of #1. Lowest-numbered first would merge 1 3 2.
+    skill_args='auto 2 3 1' tickets=(3 2 1)
     ;;
   no-shipping-md) reset_args=(--no-shipping-md) stopped=true said=('setup-ship-tickets') ran=() ;;
   no-matt-skills) prepare=disable_matt_skills stopped=true said=('mattpocock-skills') ran=() ;;
