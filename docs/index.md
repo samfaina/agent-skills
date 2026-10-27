@@ -76,7 +76,7 @@ nav_order: 1
     <a class="more" href="{{ '/how-it-works' | relative_url }}">Every step in detail →</a>
   </div>
   <ol class="grid grid--4 steps">
-    <li class="cell"><span class="k"><b>01</b> / pick</span><h3>Next ready ticket</h3><p>The lowest-numbered open issue whose blockers are all closed, from <span class="gh-label">ready-for-agent</span> or your arguments.</p></li>
+    <li class="cell"><span class="k"><b>01</b> / pick</span><h3>Next ready ticket</h3><p>The first open issue whose blockers are all closed, in the order of your arguments, or the lowest-numbered one from <span class="gh-label">ready-for-agent</span>.</p></li>
     <li class="cell"><span class="k"><b>02</b> / worktree</span><h3>Its own Orca worktree</h3><p>Branched from the remote base, which already has the previous ticket merged.</p></li>
     <li class="cell"><span class="k"><b>03</b> / implement + pr</span><h3>Fresh workers</h3><p>One builds it test-first and reviews its own diff. Another opens the PR in your repo's format.</p></li>
     <li class="cell"><span class="k"><b>04</b> / ci + merge</span><h3>Green, then merged</h3><p>Red runs go to a fix worker, at most twice. Then it merges and cleans up.</p></li>

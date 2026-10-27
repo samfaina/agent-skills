@@ -6,19 +6,19 @@ You are the **coordinator**: you own the ticket order, the CI wait and the merge
 
 1. Resolve `orca` on `PATH` (`command -v orca` in POSIX shells, `(Get-Command orca).Source` in PowerShell) and load Orca's orchestration guide with `orca skills get orchestration`. On Windows it must resolve to `orca.exe`: `orca.cmd` runs arguments through `cmd.exe`, which cuts a multi-line spec at its first newline. If it resolves to `orca.cmd`, call the `orca.exe` beside it by its full path. Use this executable for every `orca` command in the run. The guide is the source of truth for every `orca orchestration` command below and for its safety floor: an empty or timed-out wait is a checkpoint, and only an accepted `worker_done` authorizes `worker-release`. Before any stop, abandon or retry, load its `references/recovery-and-cleanup.md`.
 2. Read `docs/agents/shipping.md` as the remote default branch holds it, so the loop runs the same from any worktree: `git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`, where `<default>` comes from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. It sets the base branch, merge method, merge approval, branch naming, CI, workers, PR format and post-merge cleanup. If the default branch lacks the file, stop and tell the user to run `setup-ship-tickets` and merge the PR it opens.
-3. Resolve the **ticket set**: the issue numbers from the arguments or, with none, every open issue labelled `ready-for-agent`.
+3. Resolve the **ticket set**: the issue numbers from the arguments, in the order the user gave them, or, with none, every open issue labelled `ready-for-agent`, lowest number first.
 4. Resolve the **merge approval**, `ask` or `auto`: the override from the arguments when the user gave one, otherwise the **Merge approval** field in `shipping.md`. A file without the field means `ask`.
 5. Resolve the **worker agents** from the **Workers** field in `shipping.md`: one Orca agent id for each role: implement, PR and fix. A single id applies to all three roles, and a role the field leaves out gets `claude`. A file without the field means `claude` for all roles.
 6. Check that the implement agent will load Matt Pocock's `tdd` and `code-review`: run the provenance check in `skill-provenance.md`, in this skill's own folder, for that agent. On a fail, stop before the first ticket and report the skill and its path. Keep the resolved folders: each ticket's step 3 (Implement worker) compares the worker's report with them.
 7. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
 
-Done when the guide is loaded, `shipping.md` is read, the ticket set is a list of numbers, the merge approval is `ask` or `auto`, each worker role has an agent id, `tdd` and `code-review` each have a resolved folder, and a Run is bound.
+Done when the guide is loaded, `shipping.md` is read, the ticket set is an ordered list of numbers, the merge approval is `ask` or `auto`, each worker role has an agent id, `tdd` and `code-review` each have a resolved folder, and a Run is bound.
 
 ## For each ticket
 
 ### 1. Pick
 
-A ticket is **ready** when it is open and none of its blockers is open: `gh api 'repos/{owner}/{repo}/issues/<n>' --jq .issue_dependencies_summary.blocked_by` returns `0` (keep the quotes: PowerShell reads bare braces as a script block), and every issue in a `Blocked by:` line of its body is closed. Take the lowest-numbered ready ticket in the set.
+A ticket is **ready** when it is open and none of its blockers is open: `gh api 'repos/{owner}/{repo}/issues/<n>' --jq .issue_dependencies_summary.blocked_by` returns `0` (keep the quotes: PowerShell reads bare braces as a script block), and every issue in a `Blocked by:` line of its body is closed. Take the first ready ticket in the set's order. A ticket with any open blocker is skipped until its blockers close, and the loop takes the next ready one: with `6 2 3 1` and #6 blocked by #1, the run ships #2, #3, #1, #6.
 
 Tickets left but none ready: stop and report which open blockers hold them.
 
