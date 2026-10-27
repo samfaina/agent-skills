@@ -79,4 +79,4 @@ A first word of `ask` or `auto` overrides the field for one run, and issue numbe
 /ship-tickets auto 41 42 47
 ```
 
-The coordinator still orders the tickets by their blockers. At the end it reports each ticket as **merged** (with the PR link), **stopped** (where, why and what you need to do) or **not started** (the blockers holding it, or the failed provenance check).
+The tickets ship in the order you list them, except that a ticket waits until its blockers close. At the end it reports each ticket as **merged** (with the PR link), **stopped** (where, why and what you need to do) or **not started** (the blockers holding it, or the failed provenance check).

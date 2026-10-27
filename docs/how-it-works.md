@@ -34,7 +34,7 @@ The coordinator:
 
 - finds `orca` on your `PATH` and loads Orca's orchestration guide, the source of truth for every worker command;
 - reads `docs/agents/shipping.md` from the remote default branch and stops if it isn't there;
-- turns your arguments, or every open `ready-for-agent` issue, into the **ticket set**;
+- turns your arguments, in your order, or every open `ready-for-agent` issue, lowest number first, into the **ticket set**;
 - settles the **merge approval**: `ask` or `auto` from your arguments, otherwise the **Merge approval** field in `shipping.md`, otherwise `ask`;
 - reads from the **Workers** field which harness each worker role starts in;
 - checks that the implement worker's harness will load the `tdd` and `code-review` from mattpocock/skills, and stops if it would load another skill with the same name (see [the provenance check](harnesses#the-skill-provenance-check));
@@ -42,7 +42,7 @@ The coordinator:
 
 ## 1. Pick
 
-A ticket is **ready** when it is open and none of its blockers is: GitHub reports no open blocking issues, and every issue in a `Blocked by:` line of its body is closed. The coordinator takes the lowest-numbered ready ticket.
+A ticket is **ready** when it is open and none of its blockers is: GitHub reports no open blocking issues, and every issue in a `Blocked by:` line of its body is closed. The coordinator takes the first ready ticket in the order you gave the issue numbers, or the lowest-numbered ready ticket when you gave none. A ticket with an open blocker waits until its blockers close, then takes its place in your order again: with `6 2 3 1` and #6 blocked by #1, the run ships #2, #3, #1, #6.
 
 If tickets are left but none is ready, the loop stops and tells you which open blockers hold them.
 

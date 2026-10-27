@@ -16,6 +16,6 @@ Run the loop in `ship-tickets-loop.md`, in this skill's own folder, with the arg
 Whatever the user wrote after the skill name, read as words separated by spaces. Every argument is optional:
 
 - **Merge approval override:** a first word of `ask` or `auto` sets the merge approval for this run, over the **Merge approval** field in `docs/agents/shipping.md`.
-- **Issue numbers:** the remaining words, with or without a leading `#`. With none, the ticket set is every open issue labelled `ready-for-agent`.
+- **Issue numbers:** the remaining words, with or without a leading `#`. Their order sets the order the tickets ship in, except that a ticket waits until its blockers close. With none, the ticket set is every open issue labelled `ready-for-agent`, shipped lowest number first.
 
-So `ship-tickets auto 41 42 43` ships #41, #42 and #43 and merges each one without asking, and `ship-tickets` alone ships every ready ticket with the approval `shipping.md` sets.
+So `ship-tickets auto 43 41 42` ships #43, #41 and #42, in that order, and merges each one without asking, and `ship-tickets` alone ships every ready ticket with the approval `shipping.md` sets.
