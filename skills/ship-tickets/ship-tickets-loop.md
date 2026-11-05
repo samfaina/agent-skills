@@ -55,7 +55,7 @@ orca orchestration worker-start --worktree issue:<n> --agent <implement agent> -
 
 Pass every spec this way.
 
-Orca titles each worker's tab `worker-<task id>`, which doesn't say which ticket or role it is. Give the tab the task title: take the handle from `orca orchestration worker-show --dispatch <dispatch_id> --json` (`agentTerminalHandle`), then run `orca terminal rename --terminal <handle> --title "#<n> implement"`. Do the same for every worker you start below, with its own task title. The title only labels the tab, since Orca tracks the worker by its dispatch and handle. If the worker has no terminal handle or the rename fails, carry on.
+Orca titles each worker's tab `worker-<task id>`, which doesn't say which ticket or role it is. Give the tab the task title: take the handle from `terminal` in the `worker-start` result, then run `orca terminal rename --terminal <terminal> --title "#<n> implement"`. Do the same for every worker you start below, with its own task title. The title only labels the tab, since Orca tracks the worker by its dispatch and terminal. If the result has no `terminal` or the rename fails, carry on.
 
 Then wait as the guide says (`check --wait --types worker_done,escalation,question`).
 
@@ -69,13 +69,13 @@ Accept `--outcome succeeded` when:
 
 Some workers write those lines only after they settle. If the summary lacks them, look further before you release the worker: give it up to two minutes to go idle, then read its output with `orca orchestration worker-read --dispatch <dispatch_id> --limit 3000 --json` and take the lines from a later `worker_done` or from its terminal. Stop the loop only if they are in neither place, and say in the final report which tickets' lines came from the worker's output.
 
-Then `worker-release` and ack.
+Then `worker-release`. There is nothing to acknowledge: the `check` that returned the `worker_done` already marked it handled.
 
 ### 4. PR worker
 
 A fresh agent in the same worktree: `worker-start --worktree issue:<n> --agent <PR agent> --task-title "#<n> PR"` with the PR spec, passed as in step 3. On an existing worktree Orca opens a new terminal, so this agent starts with an empty context.
 
-Accept when the `worker_done` summary names a PR, `git -C <path> status --porcelain` is empty, and `gh pr view <pr> --json state,headRefName,body` shows it `OPEN`, on the ticket's branch, with `Closes #<n>` in the body. A merged or closed PR is one an earlier branch with the same name left behind, not this ticket's. Release and ack.
+Accept when the `worker_done` summary names a PR, `git -C <path> status --porcelain` is empty, and `gh pr view <pr> --json state,headRefName,body` shows it `OPEN`, on the ticket's branch, with `Closes #<n>` in the body. A merged or closed PR is one an earlier branch with the same name left behind, not this ticket's. Release it with `worker-release`.
 
 Then compare the PR's title and body with the PR format in `shipping.md` (`gh pr view <pr> --json title,body`). If the title differs or the body lacks a section, fix them with `gh pr edit <pr> --title <title> --body-file <file>`, writing <file> with your file-writing tool outside the repo, and say what you changed in the merge question and the final report.
 
