@@ -97,9 +97,9 @@ case $run in
     ran+=('--agent claude' 'Get-Command orca' "@'")
     ;;
   auto-mode)
-    # Auto mode refuses a merge no human approved, unless the sandbox's
-    # .claude/settings.json allow rule matches the merge, run on its own with
-    # the Bash tool. Auto mode doesn't honor the rule for the PowerShell tool.
+    # Auto mode refuses a merge no human approved, unless the sandbox's merge
+    # hook approves it. The sandbox has no allow rule, so a merge here means the
+    # hook checked the PR and approved the plain command.
     claude_permissions=(--permission-mode auto) skill_args='auto 1' tickets=(1)
     ran+=('^Bash: gh pr merge [0-9]+ --squash$')
     ;;

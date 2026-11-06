@@ -11,7 +11,7 @@ For each release, open an issue titled `Release test: <version>`, paste this che
 `testing/sandbox/` is a small Node library with a CI workflow and a `docs/agents/shipping.md`. `testing/tickets/` holds its four tickets. `testing/sandbox.sh` turns them into a private GitHub repo, and resets that repo between runs.
 
 - Ticket #2 is blocked by #3, so a full run ships them in the order #1, #3, #2, #4.
-- `.claude/settings.json` holds the merge rule `/setup-ship-tickets` adds for Merge approval `auto`, for squash merges.
+- `.claude/` holds the merge hook `/setup-ship-tickets` adds for Merge approval `auto`. `sandbox.sh create` copies its script from `skills/setup-ship-tickets/`.
 - CI has two checks, `test` and `changelog`. `changelog` fails any PR that adds no line to `CHANGELOG.md`. The sandbox's `AGENTS.md` doesn't mention it, but the implement worker's code review usually catches it, so a PR rarely goes red by itself.
 
 Run the scripts in bash (Git Bash on Windows), from this repo, with `gh` logged in. Below, `<sandbox>` is the repo you create, such as `<you>/ship-tickets-sandbox`.
@@ -28,7 +28,7 @@ bash testing/sandbox.sh create <sandbox>
 bash testing/sandbox.sh reset <sandbox> [--workers '<value>'] [--no-shipping-md]
 ```
 
-`--workers` writes its value into the **Workers** field of `shipping.md` for that run. `--no-shipping-md` removes the file and `.claude/settings.json`, to test setup from scratch. After a reset, remove the Orca worktrees the last run left, and reset your clone to `origin/main`. The script prints both commands.
+`--workers` writes its value into the **Workers** field of `shipping.md` for that run. `--no-shipping-md` removes the file and the merge hook, to test setup from scratch. After a reset, remove the Orca worktrees the last run left, and reset your clone to `origin/main`. The script prints both commands.
 
 To change the fixture or the tickets, edit `testing/` in this repo. The next `create` picks the change up. A new ticket is a file `tickets/<n>.md`, numbered after the last one, whose first line is `# <title>` and whose body starts on the third line.
 
@@ -96,6 +96,11 @@ On 0.4.4, on a 16 GB GPU with 62 GB of RAM, five models at Q4 with a 128k contex
 
 `glm-4.7-flash` can stand in as the PR and fix worker. None of the five is reliable enough to coordinate. The failures are the models', not the skills': cloud models passed the same cases on 0.4.4 ([#30](https://github.com/samfaina/agent-skills/issues/30)).
 
+## The merge hook
+
+- [ ] `bash testing/merge-hook-test.sh` passes. It runs the hook's script with a fake `gh`, with no network: each selector and each tool, for a PR of the repo, an External PR, a `gh` failure, and the forms of `gh pr merge` the hook asks about.
+- [ ] In an interactive session in auto mode, in the sandbox's clone, with `GH_TOKEN` set to an invalid token, ask Claude Code to run `gh pr merge 999999 --admin --squash` with each tool. Each shows a prompt from the hook. Answer **No**.
+
 ## Automated runs
 
 ```bash
@@ -132,9 +137,9 @@ Reset with `--no-shipping-md`, then delete the label: `gh label delete ready-for
 - [ ] Merge method is settled as `squash` without a question, because it's the only method the repo allows.
 - [ ] It asks about the unsettled fields with `AskUserQuestion`, offering the inferred value first: Merge approval, Branch naming if it has fewer than three PRs to infer from, and Workers in two rounds (same agent for every role, then the agent id).
 - [ ] The provenance check passes for the implement worker's agent and names the `tdd` and `code-review` folders.
-- [ ] Pick `auto` for Merge approval. Setup offers the merge rule with **Add** first, and says that any Claude Code session in the repo may then run the merge without asking. Pick **Add**.
-- [ ] It shows the files and waits for your go-ahead before committing. `.claude/settings.json` holds `Bash(gh pr merge * --squash)` and `PowerShell(gh pr merge * --squash)` in `permissions.allow`, and nothing else.
-- [ ] It opens a PR from `agents/shipping-config` adding `docs/agents/shipping.md` and `.claude/settings.json`. `shipping.md` follows `shipping-template.md`: it opens with the single "Read by" line, no placeholder text is left, and **Body** lists the sections you confirmed. The PR body lists each value and where it came from, and the merge rule with why it is there.
+- [ ] Pick `auto` for Merge approval. Setup offers the merge hook with **Add** first, and says what it approves and what it asks about. Pick **Add**.
+- [ ] It shows the files and waits for your go-ahead before committing. `.claude/hooks/merge-hook.sh` is the same as the skill's copy, `.claude/settings.json` holds the two hook entries and nothing else, and `.gitattributes` keeps the script LF.
+- [ ] It opens a PR from `agents/shipping-config` adding `docs/agents/shipping.md` and the merge hook's files. `shipping.md` follows `shipping-template.md`: it opens with the single "Read by" line, no placeholder text is left, and **Body** lists the sections you confirmed. The PR body lists each value and where it came from, and the merge hook with what it does.
 - [ ] The report says to pull the default branch into the coordinator's checkout once the PR merges.
 - [ ] `git worktree list` shows no worktree left by the setup, and `git status --porcelain` in the clone prints nothing.
 
@@ -151,6 +156,29 @@ Close the PR without merging.
 ### 1.3 Setup with nothing to change
 
 - [ ] `bash testing/run.sh <sandbox> setup-noop`: setup reports that `shipping.md` is up to date and opens no PR ([#24](https://github.com/samfaina/agent-skills/issues/24)).
+
+### 1.4 The merge hook on a repo already set up
+
+Each state below goes on `main` of a reset sandbox, and takes a run of `/setup-ship-tickets` in Claude Code. Close each PR without merging.
+
+**Replace.** Set Merge approval to `auto`, delete `.claude/hooks/` and `.gitattributes`'s hook line if it has one, and put only `{"permissions": {"allow": ["Bash(gh pr merge * --squash)", "PowerShell(gh pr merge * --squash)"]}}` in `.claude/settings.json`.
+
+- [ ] With nothing else to change in `shipping.md`, setup still offers **Replace** first, and says what the hook does and what the rule keeps allowing if you decline.
+- [ ] Pick **Replace**. The PR adds the hook's files and removes the rule's entries, leaving no empty `permissions`.
+
+**Update.** Set Merge approval to `auto`, and change a line of `.claude/hooks/merge-hook.sh`.
+
+- [ ] With nothing else to change in `shipping.md`, setup offers **Update** first, and says what the hook does.
+- [ ] Pick **Update**. The PR puts back the skill's copy of the script and changes nothing else.
+
+**Remove.** Leave Merge approval at `ask`, and put the same rule in `.claude/settings.json`, with no hook.
+
+- [ ] Setup offers **Remove** first, and doesn't offer the hook.
+- [ ] Pick **Remove**. The PR removes the rule's entries and adds no hook.
+
+**Nothing to do.** Set Merge approval to `auto`, and leave the hook as the reset put it.
+
+- [ ] Setup says the hook is settled, reports that `shipping.md` is up to date, and opens no PR.
 
 ## 2. Preflight failures
 
@@ -176,7 +204,7 @@ One run per row of the harness matrix. Each run ships all four tickets unless th
 - [ ] 3.2 passes.
 - [ ] 3.3 passes.
 - [ ] 3.4 passes.
-- [ ] `bash testing/run.sh <sandbox> auto-mode` passes. It runs `/ship-tickets auto 1` in Claude Code with permission checks on (`--permission-mode auto`), where every other Claude Code run skips them. Auto mode refuses a merge no human approved, so the run merges only if the sandbox's merge rule matches the merge command and the coordinator runs that command on its own, with the Bash tool. `run.sh` checks that it did: auto mode doesn't honor the rule for the PowerShell tool.
+- [ ] `bash testing/run.sh <sandbox> auto-mode` passes. It runs `/ship-tickets auto 1` in Claude Code with permission checks on (`--permission-mode auto`), where every other Claude Code run skips them. Auto mode refuses a merge no human approved, and the sandbox has no allow rule, so the run merges only if the merge hook approves it, which needs the plain command run on its own. `run.sh` checks that the coordinator ran it with the Bash tool, as the loop says.
 - [ ] `bash testing/run.sh <sandbox> order` passes. It runs `/ship-tickets auto 2 3 1` in Claude Code, or in OpenCode with `--coordinator opencode`, and the tickets must merge in the order #3, #2, #1: the numbers set the order, #2 waits until #3 is closed, and then it ships ahead of #1. Lowest-numbered first would merge #1, #3, #2.
 
 Besides `verify.sh`'s checks, `run.sh` checks the commands each coordinator ran: it bound a Run and started workers with the agents Workers names (`--agent claude`, plus `--agent opencode` in 3.3). In 3.4 it also checks that the coordinator resolved `orca` with `Get-Command`, which finds `orca.exe` before `orca.cmd`, and passed the specs as single-quoted here-strings: the two things that get a spec to a worker intact on Windows.
