@@ -157,14 +157,28 @@ Close the PR without merging.
 
 - [ ] `bash testing/run.sh <sandbox> setup-noop`: setup reports that `shipping.md` is up to date and opens no PR ([#24](https://github.com/samfaina/agent-skills/issues/24)).
 
-### 1.4 Replacing the merge rule
+### 1.4 The merge hook on a repo already set up
 
-Reset the sandbox, then on `main` set Merge approval to `auto`, delete `.claude/hooks/` and `.gitattributes`'s hook line if it has one, and put only `{"permissions": {"allow": ["Bash(gh pr merge * --squash)", "PowerShell(gh pr merge * --squash)"]}}` in `.claude/settings.json`. Run `/setup-ship-tickets` in Claude Code.
+Each state below goes on `main` of a reset sandbox, and takes a run of `/setup-ship-tickets` in Claude Code. Close each PR without merging.
+
+**Replace.** Set Merge approval to `auto`, delete `.claude/hooks/` and `.gitattributes`'s hook line if it has one, and put only `{"permissions": {"allow": ["Bash(gh pr merge * --squash)", "PowerShell(gh pr merge * --squash)"]}}` in `.claude/settings.json`.
 
 - [ ] With nothing else to change in `shipping.md`, setup still offers **Replace** first, and says what the hook does and what the rule keeps allowing if you decline.
 - [ ] Pick **Replace**. The PR adds the hook's files and removes the rule's entries, leaving no empty `permissions`.
 
-Close the PR without merging.
+**Update.** Set Merge approval to `auto`, and change a line of `.claude/hooks/merge-hook.sh`.
+
+- [ ] With nothing else to change in `shipping.md`, setup offers **Update** first, and says what the hook does.
+- [ ] Pick **Update**. The PR puts back the skill's copy of the script and changes nothing else.
+
+**Remove.** Leave Merge approval at `ask`, and put the same rule in `.claude/settings.json`, with no hook.
+
+- [ ] Setup offers **Remove** first, and doesn't offer the hook.
+- [ ] Pick **Remove**. The PR removes the rule's entries and adds no hook.
+
+**Nothing to do.** Set Merge approval to `auto`, and leave the hook as the reset put it.
+
+- [ ] Setup says the hook is settled, reports that `shipping.md` is up to date, and opens no PR.
 
 ## 2. Preflight failures
 
