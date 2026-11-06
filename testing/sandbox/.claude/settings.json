@@ -1,8 +1,28 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(gh pr merge * --squash)",
-      "PowerShell(gh pr merge * --squash)"
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(*gh pr merge*)",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/merge-hook.sh\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "PowerShell(*gh pr merge*)",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/merge-hook.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   }
 }

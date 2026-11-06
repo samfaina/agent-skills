@@ -1,3 +1,7 @@
+---
+status: superseded by ADR-0006
+---
+
 # Setup adds a Claude Code allow rule for the merge, in the repo
 
 Claude Code's auto mode classifier began refusing `gh pr merge` under its built-in `Merge Without Review` rule ("merging a PR before any human has approved it"). The rule lives server-side: no Claude Code binary contains it, and on 2026-10-17 it blocked both coordinators running Merge approval `auto`, where the day before the same loop had merged. So in auto mode `auto` behaves as `ask`. When the user picks `auto`, `setup-ship-tickets` offers two narrow `permissions.allow` entries, `Bash(gh pr merge * --<method>)` and `PowerShell(gh pr merge * --<method>)`, in the repo's `.claude/settings.json`, committed in the same PR as `shipping.md`. Claude Code settles allow rules before the classifier, and auto mode keeps narrow rules where it drops blanket ones. The loop runs the merge as a command of its own so the rule matches it, and when a harness still refuses the merge it handles that ticket as `ask` and doesn't stop.

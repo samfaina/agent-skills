@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Run this skill only when the user invoked it by name. If you reached it any other way, stop and tell the user to run `setup-ship-tickets` themselves.
 
-Prepares the current repo for the `ship-tickets` skill. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file, plus the Claude Code merge rule from step 2 when the user wants it, unless nothing needs to change.
+Prepares the current repo for the `ship-tickets` skill. The loop reads `docs/agents/shipping.md` from the remote default branch, so setup ends with a PR that adds or updates that file, plus the Claude Code merge hook from step 2 when the user wants it, unless nothing needs to change.
 
 The format is `shipping-template.md`, in this skill's own folder. Read it before step 2: every field it lists gets a value, and the file you write keeps its structure.
 
@@ -50,18 +50,62 @@ Ask about Workers in two rounds. First ask whether every worker role uses the sa
 
 Once Workers is settled, run the provenance check for the implement worker's agent and record its result alongside the preflight checks. The check is `skill-provenance.md` in the `ship-tickets` skill's folder, which sits beside this skill's folder (`../ship-tickets/`).
 
-With Merge approval `auto`, offer the **merge rule**. Claude Code's auto mode refuses a `gh pr merge` that no human approved, so without the rule a coordinator in Claude Code asks before each merge whatever `shipping.md` says. A matching allow rule in the repo's `.claude/settings.json` is settled before that check runs. The rule is these two `permissions.allow` entries, where `<method>` is the Merge method:
+Then settle the **merge hook**. Claude Code's auto mode refuses a `gh pr merge` that no human approved, so without the hook a coordinator in Claude Code asks before each merge whatever `shipping.md` says. The hook is a `PreToolUse` hook in the repo's `.claude/`, made of three parts:
 
-```text
-Bash(gh pr merge * --<method>)
-PowerShell(gh pr merge * --<method>)
-```
+- the script `merge-hook.sh`, in this skill's own folder, copied to `.claude/hooks/merge-hook.sh`;
+- these two entries in `hooks.PreToolUse` of `.claude/settings.json`:
 
-Read `git show origin/<default>:.claude/settings.json`. If both entries are already there, the rule is settled. Otherwise ask the user whether to add it, offering **Add** first. Say what it does: any Claude Code session in this repo, not only the loop, may then run that merge command without asking. The user's answer is the authorization to add it: add the rule only on **Add**. On a decline, say that a coordinator in Claude Code's auto mode will ask before each merge. With Merge approval `ask`, offer no rule and leave any rule already in the file as it is.
+  ```json
+  {
+    "matcher": "Bash",
+    "hooks": [
+      {
+        "type": "command",
+        "if": "Bash(*gh pr merge*)",
+        "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/merge-hook.sh\"",
+        "timeout": 30
+      }
+    ]
+  },
+  {
+    "matcher": "PowerShell",
+    "hooks": [
+      {
+        "type": "command",
+        "if": "PowerShell(*gh pr merge*)",
+        "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/merge-hook.sh\"",
+        "timeout": 30
+      }
+    ]
+  }
+  ```
 
-On an update, work out the files step 3 would write: `shipping.md` from the template and the values gathered here, and `.claude/settings.json` if the user chose **Add**. If `shipping.md` is the same as the one on the default branch and no rule is to be added, nothing needs to change: skip step 3, create no worktree and open no PR, and go to **Report**.
+- this line in `.gitattributes`, because Git Bash tolerates CRLF line endings but other shells break on them: `.claude/hooks/*.sh text eol=lf`, unless a line there already forces LF on that path.
 
-Done when every field in the template holds a value, the user has confirmed each unsettled one, the provenance check has a recorded result, the merge rule is settled, added or declined (or skipped for `ask`), and on an update you know whether any file changes.
+An older setup wrote the **merge rule** instead: `Bash(gh pr merge * --<method>)` and `PowerShell(gh pr merge * --<method>)` in `permissions.allow`, for any method. It approves any PR, so the hook replaces it.
+
+Read `.claude/settings.json`, `.claude/hooks/merge-hook.sh` and `.gitattributes` with `git show origin/<default>:<path>`. Compare the script with this skill's copy, ignoring line endings. Then pick the row that fits and ask the user, offering the action first. The user's answer is the authorization: change these files only if they pick it.
+
+| Merge approval | What the default branch holds | Offer | On a decline, say |
+| --- | --- | --- | --- |
+| `auto` | No hook, no rule | **Add** | A coordinator in Claude Code's auto mode will ask before each merge. |
+| `auto` | The rule, no hook | **Replace**: add the hook, remove the rule's entries | The rule stays, so any session may merge any PR the rule matches without asking, an External PR or one with `--admin` included. |
+| `auto` | The hook with a part missing or a script that differs from this skill's | **Update** | The hook stays as it is. |
+| `auto` | The whole hook, and the rule too | **Replace**: remove the rule's entries | The rule stays, and approves the merge if the hook can't run. |
+| `auto` | The whole hook, no rule | Nothing: it's settled | |
+| `ask` | The rule | **Remove** the rule's entries. `ask` doesn't need them | The rule stays, as in the **Replace** row. |
+| `ask` | Anything else | Nothing, and a hook already there stays | |
+
+When you offer **Add**, **Replace** or **Update**, say what the hook does:
+
+- Any Claude Code session in this repo, not only the loop, may then run `gh pr merge [selector] [-R repo] --merge|--squash|--rebase` without asking, if `gh` confirms the PR belongs to this repo and so does its head branch.
+- It asks a human about an External PR (a fork's PR, a collaborator's fork included, or a PR in another repo), about any other form of `gh pr merge` such as `--admin`, and when `gh` fails.
+- If the hook can't run, nothing approves the merge and the coordinator asks. That is what happens on Windows without Git Bash.
+- If `origin` is the user's fork rather than the repo PRs merge into, every PR the loop opens counts as external, so the coordinator asks before each merge.
+
+On an update, work out the files step 3 would write: `shipping.md` from the template and the values gathered here, plus the hook's files and the rule's removal if the user chose them. If `shipping.md` is the same as the one on the default branch and no hook or rule file changes, nothing needs to change: skip step 3, create no worktree and open no PR, and go to **Report**.
+
+Done when every field in the template holds a value, the user has confirmed each unsettled one, the provenance check has a recorded result, the merge hook is settled, changed or declined, and on an update you know whether any file changes.
 
 ## 3. Open the PR
 
@@ -79,16 +123,21 @@ Write every file there, and nowhere else: setup writes nothing in the user's che
 
 Before showing `shipping.md`, compare it with the template line by line: no placeholder text, such as "the sections, in order, and what each holds" or "e.g.", is left.
 
-If the user chose **Add** in step 2, write the merge rule to `.claude/settings.json` in the same worktree. When the file exists, keep every key and entry it has and append the missing entries to `permissions.allow`; otherwise create it holding only `{"permissions": {"allow": [<the two entries>]}}`. Check that it parses as JSON.
+Apply what the user chose in step 2, in the same worktree:
+
+- **Add**, **Update**, or **Replace** without the hook: copy `merge-hook.sh` to `.claude/hooks/merge-hook.sh` with LF line endings. Append the two entries to `hooks.PreToolUse` in `.claude/settings.json`, unless an entry already runs that script, and add the line to `.gitattributes` if the file doesn't force LF on that path. Create either file if it's missing.
+- **Replace** or **Remove**: delete the rule's entries from `permissions.allow`, then any `allow` list or `permissions` object that leaves empty.
+
+Keep every other key and entry those files have. Check that `.claude/settings.json` parses as JSON.
 
 Show the user each file you wrote (or the diff, on an update) and wait for their go-ahead.
 
-Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default> --body-file <file>` with a body listing each value and where it came from, and the merge rule with why it is there when the PR adds it. Write the body to <file> with your file-writing tool, outside the worktree and the user's checkout, so that no shell rewrites its backticks, quotes or `$`. Remove the worktree with `git worktree remove <tmp-dir>`, and the body file.
+Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default> --body-file <file>` with a body listing each value and where it came from, and, when the PR changes them, the merge hook with what it does and the rule with why it goes. Write the body to <file> with your file-writing tool, outside the worktree and the user's checkout, so that no shell rewrites its backticks, quotes or `$`. Remove the worktree with `git worktree remove <tmp-dir>`, and the body file.
 
 Done when the PR is open, the worktree and the body file are removed, and `git status --porcelain` in the user's checkout lists no file that setup wrote.
 
 ## Report
 
 - The PR URL. `ship-tickets` can run once it merges. If step 3 was skipped, say instead that `shipping.md` is up to date and `ship-tickets` can run now, or once the preflight failures below are fixed.
-- If the PR adds the merge rule: Claude Code reads `.claude/settings.json` from the local checkout, not the remote, so pull the default branch into the checkout the coordinator runs in once the PR merges, then start the coordinator in a new session.
+- If the PR changes the merge hook or the rule: Claude Code reads `.claude/` from the local checkout, not the remote, so pull the default branch into the checkout the coordinator runs in once the PR merges, then start the coordinator in a new session. Until then, that checkout keeps what it had.
 - Each preflight failure still open, with the fix the user needs. A failed provenance check names the skill and the path the worker would load it from.

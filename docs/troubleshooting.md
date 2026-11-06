@@ -67,9 +67,19 @@ On Windows, `orca` resolved to `orca.cmd`, which cuts a multi-line spec at its f
 
 ## The loop asks before a merge with Merge approval `auto`
 
-The coordinator runs in Claude Code's auto mode, which refused the merge because no human approved it. The coordinator tells you so and asks you instead. Pick **Merge** to merge that PR. To merge without asking, add the [merge rule](shipping-md#the-merge-rule-for-claude-codes-auto-mode): run `/setup-ship-tickets`, pick **Add**, merge its PR and pull it into your checkout.
+The coordinator runs in Claude Code's auto mode, which refused the merge because no human approved it. The coordinator tells you so and asks you instead. Pick **Merge** to merge that PR. To merge without asking, add the [merge hook](shipping-md#the-merge-hook-for-claude-codes-auto-mode): run `/setup-ship-tickets`, pick **Add**, merge its PR and pull it into your checkout.
 
-If the repo already has the rule, check which tool ran the merge. From Claude Code's PowerShell tool, auto mode sends the merge to the classifier even when the rule matches, so the loop runs it with the Bash tool. A coordinator on a version of the skill older than 0.5.2 may still use PowerShell.
+If the repo already has the hook, check that your checkout has it, and that `sh` runs on your machine: on Windows, the hook needs Git Bash. If the repo has the older allow rule, check which tool ran the merge: from Claude Code's PowerShell tool, auto mode sends the merge to the classifier even when the rule matches. Pick **Replace** in `/setup-ship-tickets` to move to the hook.
+
+## Claude Code asks you to confirm a merge
+
+The [merge hook](shipping-md#the-merge-hook-for-claude-codes-auto-mode) didn't approve it, and the prompt says why:
+
+- **External PR.** The PR comes from a fork or belongs to another repo. Review it first. If `origin` is your fork, every PR counts as external.
+- **Not the plain command.** The command has a flag such as `--admin`, or something chained to it. The loop never runs these, so check what ran it.
+- **Could not check.** `gh` failed, and the error is in the prompt. A network failure would stop the merge too.
+
+Pick **Yes** to merge that one PR. Pick **No** to stop the turn and tell the coordinator what to do instead. In a `claude -p` run nobody can answer, so Claude Code refuses the merge, and the loop stops at that ticket.
 
 ## A merged ticket's worktree is still there
 

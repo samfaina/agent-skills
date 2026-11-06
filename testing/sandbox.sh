@@ -51,9 +51,9 @@ reset() {
       echo "  Workers: $workers"
     fi
     if $no_shipping_md; then
-      git rm --quiet --ignore-unmatch docs/agents/shipping.md .claude/settings.json
-      git commit --quiet -m "Remove shipping.md and the merge rule for a setup test run"
-      echo "  removed docs/agents/shipping.md and .claude/settings.json"
+      git rm --quiet --ignore-unmatch docs/agents/shipping.md .claude/settings.json .claude/hooks/merge-hook.sh
+      git commit --quiet -m "Remove shipping.md and the merge hook for a setup test run"
+      echo "  removed docs/agents/shipping.md, .claude/settings.json and the merge hook"
     fi
     git push --quiet --force origin main
 
@@ -116,6 +116,9 @@ create() {
 
   echo "Creating $repo"
   cp -r "$here/sandbox" "$work/create"
+  # The script the fixture's .claude/settings.json runs, as setup would copy it.
+  mkdir -p "$work/create/.claude/hooks"
+  cp "$here/../skills/setup-ship-tickets/merge-hook.sh" "$work/create/.claude/hooks/merge-hook.sh"
   (
     cd "$work/create"
     git init --quiet -b main
