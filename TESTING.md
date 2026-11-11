@@ -109,7 +109,7 @@ bash testing/run.sh <sandbox> <run> [--coordinator claude|opencode]
 
 `run.sh` resets the sandbox, removes its Orca worktrees, and resets the clone, deleting its local branches. Then it starts the coordinator in a new Orca terminal in the clone, waits for it to exit, and ends with the result of `verify.sh`: `PASS`, or `FAIL` and the check that failed. Nothing asks you anything, so the coordinator runs with permission prompts off, in the sandbox's clone only: `claude -p --dangerously-skip-permissions` or `opencode run --auto`. `--coordinator` picks the harness for runs that can use either.
 
-The coordinator's output goes to `testing/logs/`: the JSON event log, `<run>-<time>.said.txt` with what the coordinator wrote, and `<run>-<time>.ran.txt` with the commands it ran. Read them when a run fails.
+The coordinator's output goes to `testing/logs/`: the JSON event log, `<run>-<time>.said.txt` with what the coordinator wrote, `<run>-<time>.report.txt` with its last message, and `<run>-<time>.ran.txt` with the commands it ran. Read them when a run fails.
 
 For a loop run, `verify.sh` checks that:
 
@@ -118,13 +118,15 @@ For a loop run, `verify.sh` checks that:
 - each ticket is closed and its remote branch deleted;
 - one PR's `changelog` check failed and then passed, so a fix worker ran;
 - no Orca worktree is left for the sandbox, and the run left no reclaimable worker;
-- the coordinator's report says the tickets merged.
+- the coordinator's last message links each merged PR as `/pull/<n>`. A link in an earlier message, such as when it opened the PR, doesn't count. The check looks for no words, so it holds whatever language the coordinator reports in.
 
 So that a fix worker always runs, `run.sh` forces one PR red: once the first ticket's PR opens, it pushes a commit that drops the PR's `CHANGELOG.md` line.
 
-A run that has to stop before its first ticket passes when no PR and no worktree exist, and the coordinator's report names the failed check.
+A run that has to stop before its first ticket passes when no PR and no worktree exist, and the coordinator's report names what stopped it: `#3`, `shipping.md`, `ORCA_TERMINAL_HANDLE`, a skill or a path. The checks match these names, never words, so they hold in any language.
 
-You can also run `verify.sh` on its own after a run, with the tickets in the order they must merge: `bash testing/verify.sh <sandbox> 1 3 2 4`.
+You can also run `verify.sh` on its own after a run, with the tickets in the order they must merge: `bash testing/verify.sh <sandbox> 1 3 2 4`. It checks the last message only with `--report <run>-<time>.report.txt`.
+
+`bash testing/report-test.sh` tests how `run.sh` and `verify.sh` read the coordinator's output, with no network: the said, ran and report files from a Claude Code and an OpenCode event log, and the check that the report links each PR.
 
 ## 1. Setup
 

@@ -14,6 +14,9 @@
 #                       options after it (repeatable)
 #   --expect <regex>    the last --log file matches this extended regex,
 #                       case-insensitive (repeatable)
+#   --report <file>     the coordinator's last message, which must link each
+#                       merged PR as /pull/<n> (without it, the check is
+#                       skipped; a --stopped run skips it too)
 #
 # Exits non-zero on the first failed check and names it.
 set -eEuo pipefail
@@ -22,7 +25,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 . "$here/lib.sh"
 
 usage() {
-  echo "usage: verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… [tickets…]" >&2
+  echo "usage: verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… [--report <file>] [tickets…]" >&2
   echo "       verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… --stopped" >&2
   exit 1
 }
@@ -31,13 +34,14 @@ usage() {
 repo=$1
 shift
 
-since='' log='' stopped=false
+since='' log='' report='' stopped=false
 expect_logs=() expects=() tickets=()
 while [ $# -gt 0 ]; do
   case $1 in
     --since) [ $# -ge 2 ] || usage; since=$2; shift 2 ;;
     --log) [ $# -ge 2 ] || usage; log=$2; shift 2 ;;
     --expect) [ $# -ge 2 ] && [ -n "$log" ] || usage; expect_logs+=("$log"); expects+=("$2"); shift 2 ;;
+    --report) [ $# -ge 2 ] || usage; report=$2; shift 2 ;;
     --stopped) stopped=true; shift ;;
     [0-9]*) tickets+=("$1"); shift ;;
     *) usage ;;
@@ -73,6 +77,17 @@ check_log() {
     grep -Eiq -- "$regex" "$file" || fail "coordinator output: nothing matches /$regex/ in $file"
     ok "coordinator output matches /$regex/ ($(basename "$file"))"
   done
+}
+
+# The loop's final report links each merged PR. Only the last message counts:
+# a coordinator can link a PR when it opens it and never report the merge.
+check_report() {
+  local missing
+  [ -n "$report" ] || return 0
+  [ -s "$report" ] || fail "coordinator report: $report is missing or empty"
+  missing=$(unlinked_prs "$report" "${prs[@]}" | sed 's/^/#/' | tr '\n' ' ')
+  [ -z "$missing" ] || fail "coordinator report: the last message doesn't link PR ${missing}($(basename "$report"))"
+  ok "coordinator report links PR $(printf '#%s ' "${prs[@]}")($(basename "$report"))"
 }
 
 check_orca() {
@@ -188,4 +203,5 @@ ok "PR #$red_then_green: changelog check failed, then passed"
 
 check_orca
 check_log
+check_report
 echo "PASS  ${expected// / #} shipped"
