@@ -123,7 +123,8 @@ case $run in
     ;;
   setup-noop)
     skill=setup-ship-tickets skill_args='' stopped=true ran=()
-    # Only shows the report names the file: no PR and no worktree show the rest.
+    # Shows only that the coordinator named the file. The checks for no PR and
+    # no worktree cover the rest.
     said=('shipping\.md')
     ;;
   outside-orca)
@@ -260,15 +261,16 @@ fi
 [ -z "$breaker" ] || wait "$breaker" || true
 echo "Coordinator exited with $(cat "$status")"
 
-for part in said ran report; do transcript "$part" < "$log" > "${log%.log}.$part.txt"; done
+out=${log%.log}
+for part in said ran report; do transcript "$part" < "$log" > "$out.$part.txt"; done
 
-verify_args=(--since "$since" --log "${log%.log}.said.txt")
+verify_args=(--since "$since" --log "$out.said.txt")
 for regex in ${said[@]+"${said[@]}"}; do verify_args+=(--expect "$regex"); done
-verify_args+=(--log "${log%.log}.ran.txt")
+verify_args+=(--log "$out.ran.txt")
 for regex in ${ran[@]+"${ran[@]}"}; do verify_args+=(--expect "$regex"); done
 if $stopped; then
   verify_args+=(--stopped)
 else
-  verify_args+=(--report "${log%.log}.report.txt" "${tickets[@]}")
+  verify_args+=(--report "$out.report.txt" "${tickets[@]}")
 fi
 bash "$here/verify.sh" "$repo" "${verify_args[@]}"

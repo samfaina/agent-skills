@@ -24,20 +24,20 @@ check() {
   fi
 }
 
-# A Claude Code stream-json log: a message split over two events, a subagent's
-# message, a later message that only runs a command, and a two-block report.
+# A Claude Code stream-json log: a message whose text and command come in two
+# events, a two-block report, and a subagent's message after it.
 cat > "$work/claude.log" <<'EOF'
 {"type":"system","subtype":"init"}
 {"type":"assistant","parent_tool_use_id":null,"message":{"id":"m1","content":[{"type":"text","text":"Abrí el PR: https://github.com/o/r/pull/7"}]}}
 {"type":"assistant","parent_tool_use_id":null,"message":{"id":"m1","content":[{"type":"tool_use","name":"Bash","input":{"command":"gh pr checks 7 --watch"}}]}}
 {"type":"user","message":{"content":[{"type":"tool_result","content":"ok"}]}}
-{"type":"assistant","parent_tool_use_id":"tu_1","message":{"id":"s1","content":[{"type":"text","text":"subagente"}]}}
 {"type":"assistant","parent_tool_use_id":null,"message":{"id":"m2","content":[{"type":"text","text":"**#1 quedó mergeado:**"}]}}
 {"type":"assistant","parent_tool_use_id":null,"message":{"id":"m2","content":[{"type":"text","text":"[PR #7](https://github.com/o/r/pull/7)"}]}}
+{"type":"assistant","parent_tool_use_id":"tu_1","message":{"id":"s1","content":[{"type":"text","text":"subagente"}]}}
 {"type":"result","subtype":"success","result":"[PR #7](https://github.com/o/r/pull/7)"}
 EOF
 
-check "Claude Code: report is the last message, all its text blocks" \
+check "Claude Code: report is the last message, all its text blocks, never a subagent's" \
   "$(printf '%s\n%s' '**#1 quedó mergeado:**' '[PR #7](https://github.com/o/r/pull/7)')" \
   "$(transcript report < "$work/claude.log")"
 
@@ -58,7 +58,7 @@ check "OpenCode: report is the last step's text" \
   "$(transcript report < "$work/opencode.log")"
 
 check "Claude Code: said is every message, a subagent's too" \
-  "$(printf '%s\n' 'Abrí el PR: https://github.com/o/r/pull/7' subagente '**#1 quedó mergeado:**' '[PR #7](https://github.com/o/r/pull/7)')" \
+  "$(printf '%s\n' 'Abrí el PR: https://github.com/o/r/pull/7' '**#1 quedó mergeado:**' '[PR #7](https://github.com/o/r/pull/7)' subagente)" \
   "$(transcript said < "$work/claude.log")"
 check "Claude Code: ran is the commands, with the tool" \
   'Bash: gh pr checks 7 --watch' \
@@ -69,6 +69,13 @@ check "OpenCode: said is every step's text" \
 check "OpenCode: ran is the commands" \
   'gh pr checks 7 --watch' \
   "$(transcript ran < "$work/opencode.log")"
+
+# OpenCode gives each step its own message id. Should two steps ever share
+# one, the step_start between them still ends the first message.
+sed 's/"m2"/"m1"/' "$work/opencode.log" > "$work/shared-id.log"
+check "OpenCode: a step_start ends the message, whatever its id" \
+  '**#1 quedó mergeado:** [PR #7](https://github.com/o/r/pull/7)' \
+  "$(transcript report < "$work/shared-id.log")"
 
 # The report a loop run ends with must link each PR it merged.
 printf '%s\n' '**#1 quedó mergeado:** [PR #7](https://github.com/o/r/pull/7)' \

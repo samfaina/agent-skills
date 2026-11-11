@@ -118,11 +118,11 @@ For a loop run, `verify.sh` checks that:
 - each ticket is closed and its remote branch deleted;
 - one PR's `changelog` check failed and then passed, so a fix worker ran;
 - no Orca worktree is left for the sandbox, and the run left no reclaimable worker;
-- the coordinator's last message links each merged PR as `/pull/<n>`. A link in an earlier message, such as when it opened the PR, doesn't count. The check looks for no words, so it holds whatever language the coordinator reports in.
+- the coordinator's last message links each merged PR as `/pull/<n>`, in any language; a link in an earlier message doesn't count.
 
 So that a fix worker always runs, `run.sh` forces one PR red: once the first ticket's PR opens, it pushes a commit that drops the PR's `CHANGELOG.md` line.
 
-A run that has to stop before its first ticket passes when no PR and no worktree exist, and the coordinator's report names what stopped it: `#3`, `shipping.md`, `ORCA_TERMINAL_HANDLE`, a skill or a path. The checks match these names, never words, so they hold in any language.
+A run that has to stop before its first ticket passes when no PR and no worktree exist, and the coordinator's output names what stopped it: `#3`, `shipping.md`, `ORCA_TERMINAL_HANDLE`, a skill or a path. The checks match these names, never words, so they hold in any language.
 
 You can also run `verify.sh` on its own after a run, with the tickets in the order they must merge: `bash testing/verify.sh <sandbox> 1 3 2 4`. It checks the last message only with `--report <run>-<time>.report.txt`.
 
