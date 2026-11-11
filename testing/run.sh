@@ -77,13 +77,16 @@ copy_tdd() {
 # What each run resets, starts and checks. `tickets` is the merge order a loop
 # run must reach; `stopped` runs must stop before their first ticket instead.
 # `said` patterns must match what the coordinator wrote, `ran` patterns the
-# commands it ran. `prepare` breaks what the run tests, after the reset.
+# commands it ran. They match identifiers, paths and commands, never words, so
+# they hold in any language the coordinator writes in. A loop run's report is
+# checked by verify.sh instead: its last message must link each merged PR.
+# `prepare` breaks what the run tests, after the reset.
 # `claude_permissions` is how a Claude Code coordinator gets past permission
 # checks: skipped for every run but auto-mode, which keeps them on.
 reset_args=() coordinator=claude skill=ship-tickets skill_args=auto prepare=''
 claude_permissions=(--dangerously-skip-permissions)
 tickets=(1 3 2 4) stopped=false in_orca=true unset_shell=false
-said=('merged') ran=('run-create')
+said=() ran=('run-create')
 case $run in
   3.2) coordinator=opencode ran+=('--agent claude') ;;
   3.3)
@@ -116,15 +119,17 @@ case $run in
     ;;
   blocked)
     skill_args='auto 2' stopped=true ran=()
-    said=('#3[^.]*(block|hold|open)|(block|hold)[^.]*#3')
+    said=('#3([^0-9]|$)')
     ;;
   setup-noop)
     skill=setup-ship-tickets skill_args='' stopped=true ran=()
-    said=('up to date|up-to-date|no change|nothing to change')
+    # Shows only that the coordinator named the file. The checks for no PR and
+    # no worktree cover the rest.
+    said=('shipping\.md')
     ;;
   outside-orca)
     skill=setup-ship-tickets skill_args='' stopped=true in_orca=false ran=()
-    said=('ORCA_TERMINAL_HANDLE[^=]*(not|isn.t|unset|missing)')
+    said=('ORCA_TERMINAL_HANDLE')
     ;;
   *) usage ;;
 esac
@@ -256,18 +261,16 @@ fi
 [ -z "$breaker" ] || wait "$breaker" || true
 echo "Coordinator exited with $(cat "$status")"
 
-# Splits the coordinator's JSON event log, from Claude Code or OpenCode, into
-# what it wrote (said) or the commands it ran (ran).
-transcript() {
-  local script='let s = ""; process.stdin.on("data", (c) => (s += c)).on("end", () => { const want = process.argv[1], out = []; for (const line of s.split("\n")) { let e; try { e = JSON.parse(line); } catch { continue; } if (e.type === "assistant") for (const c of e.message.content) { if (want === "said" && c.type === "text") out.push(c.text); if (want === "ran" && c.type === "tool_use" && c.input.command) out.push(c.name + ": " + c.input.command); } if (want === "said" && e.type === "text") out.push(e.part.text); if (want === "ran" && e.type === "tool_use" && e.part?.state?.input?.command) out.push(e.part.state.input.command); } console.log(out.join("\n")); });'
-  MSYS_NO_PATHCONV=1 node -e "$script" -- "$1" < "$log"
-}
-transcript said > "${log%.log}.said.txt"
-transcript ran > "${log%.log}.ran.txt"
+out=${log%.log}
+for part in said ran report; do transcript "$part" < "$log" > "$out.$part.txt"; done
 
-verify_args=(--since "$since" --log "${log%.log}.said.txt")
+verify_args=(--since "$since" --log "$out.said.txt")
 for regex in ${said[@]+"${said[@]}"}; do verify_args+=(--expect "$regex"); done
-verify_args+=(--log "${log%.log}.ran.txt")
+verify_args+=(--log "$out.ran.txt")
 for regex in ${ran[@]+"${ran[@]}"}; do verify_args+=(--expect "$regex"); done
-if $stopped; then verify_args+=(--stopped); else verify_args+=("${tickets[@]}"); fi
+if $stopped; then
+  verify_args+=(--stopped)
+else
+  verify_args+=(--report "$out.report.txt" "${tickets[@]}")
+fi
 bash "$here/verify.sh" "$repo" "${verify_args[@]}"

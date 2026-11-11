@@ -1,4 +1,4 @@
-# Helpers that run.sh and verify.sh share. Source it, don't run it.
+# Helpers for the release test scripts. Source it, don't run it.
 
 # Evaluates a JavaScript expression over the JSON on stdin, as `d`, with the
 # remaining arguments as `a`. Arrays print one item per line. The script stays
@@ -7,6 +7,27 @@
 js() {
   local script='let s = ""; process.stdin.on("data", (c) => (s += c)).on("end", () => { const d = JSON.parse(s); const a = process.argv.slice(1); const r = eval(a[0]); if (r !== undefined && r !== null) console.log(Array.isArray(r) ? r.join("\n") : String(r)); });'
   MSYS_NO_PATHCONV=1 node -e "$script" -- "$@"
+}
+
+# Splits the coordinator's JSON event log on stdin, from Claude Code or
+# OpenCode, into what it wrote (said), the commands it ran (ran), or the text
+# of its last message with text (report). A message is one Claude Code message
+# id, whose blocks can come in several events, or one OpenCode step, from its
+# step_start event on. A Claude Code subagent's messages count as said but
+# never as the report.
+transcript() {
+  local script='let s = ""; process.stdin.on("data", (c) => (s += c)).on("end", () => { const said = [], ran = []; let id = null, report = []; const addToReport = (m, t) => { if (m !== id) { id = m; report = []; } report.push(t); }; for (const line of s.split("\n")) { let e; try { e = JSON.parse(line); } catch { continue; } if (e.type === "assistant") for (const c of e.message.content) { if (c.type === "text") { said.push(c.text); if (!e.parent_tool_use_id) addToReport(e.message.id, c.text); } if (c.type === "tool_use" && c.input.command) ran.push(c.name + ": " + c.input.command); } if (e.type === "step_start") id = null; if (e.type === "text") { said.push(e.part.text); addToReport(e.part.messageID, e.part.text); } if (e.type === "tool_use" && e.part?.state?.input?.command) ran.push(e.part.state.input.command); } console.log({ said, ran, report }[process.argv[1]].join("\n")); });'
+  MSYS_NO_PATHCONV=1 node -e "$script" -- "$1"
+}
+
+# Prints each of the PR numbers after <file> that the file doesn't link, as
+# /pull/<n> not followed by a digit, one per line.
+unlinked_prs() {
+  local file=$1 pr
+  shift
+  for pr in "$@"; do
+    grep -Eq -- "/pull/$pr([^0-9]|$)" "$file" || echo "$pr"
+  done
 }
 
 # Prints the Orca repo entry of <owner/repo> as JSON, or `null` when the
