@@ -91,5 +91,22 @@ echo '{"type":"assistant","parent_tool_use_id":null,"message":{"id":"m2","conten
 transcript report < "$work/unreported.log" > "$work/unreported.txt"
 check "unlinked_prs: a link in an earlier message doesn't count" '7' "$(unlinked_prs "$work/unreported.txt" 7)"
 
+# A report that gives the user a cleanup the harness refused.
+printf '%s\n' '**#1 quedó mergeado:** [PR #7](https://github.com/o/r/pull/7)' \
+  'Ejecuta `git push origin --delete samfaina/1-add-slugify.v2`.' > "$work/refused.txt"
+gives() { if gives_command "$@"; then echo yes; else echo no; fi; }
+check "gives_command: the exact command, in backticks" yes \
+  "$(gives "$work/refused.txt" 'git push origin --delete samfaina/1-add-slugify.v2')"
+check "gives_command: no for a command the report doesn't give" no \
+  "$(gives "$work/report.txt" 'git push origin --delete samfaina/1-add-slugify.v2')"
+check "gives_command: a longer branch name isn't this branch" no \
+  "$(gives "$work/refused.txt" 'git push origin --delete samfaina/1-add-slugify')"
+check "gives_command: a dot in the branch matches only a dot" no \
+  "$(gives "$work/refused.txt" 'git push origin --delete samfaina/1-add-slugifyxv2')"
+# Git forbids a branch name ending in a dot, so a period after it ends a sentence.
+echo 'Run git push origin --delete 1-add-slugify.' > "$work/sentence.txt"
+check "gives_command: a sentence's period isn't part of the branch" yes \
+  "$(gives "$work/sentence.txt" 'git push origin --delete 1-add-slugify')"
+
 [ "$failures" = 0 ] || { echo "$failures failed" >&2; exit 1; }
 echo "PASS"
