@@ -198,6 +198,11 @@ Each state below goes on `main` of a reset sandbox, and takes a run of `/setup-s
 - [ ] Setup asks whether to turn on **Automatically delete head branches**, offering **Yes** first. Pick **Yes**. It runs `gh repo edit --delete-branch-on-merge` on its own, and `gh repo view <sandbox> --json deleteBranchOnMerge` then shows `true`.
 - [ ] The PR changes only After merge, to "nothing". The report says the setting was turned on.
 
+**A No keeps After merge's wording.** Set Merge approval to `auto`, and set After merge to `run git push origin --delete <branch> once the PR merges`, which deletes the branch in other words than setup writes.
+
+- [ ] Setup asks whether to turn on **Automatically delete head branches**, offering **Yes** first. Pick **No**.
+- [ ] Setup reports that `shipping.md` is up to date and opens no PR: After merge keeps your wording. The report says the setting was left off.
+
 ## 2. Preflight failures
 
 Each run breaks one thing, runs a skill in Claude Code, and restores the thing afterwards.
