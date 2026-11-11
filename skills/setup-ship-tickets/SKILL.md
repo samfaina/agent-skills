@@ -84,7 +84,7 @@ Then settle the **merge hook**. Claude Code's auto mode refuses a `gh pr merge` 
 
 An older setup wrote the **merge rule** instead: `Bash(gh pr merge * --<method>)` and `PowerShell(gh pr merge * --<method>)` in `permissions.allow`, for any method. It approves any PR, so the hook replaces it.
 
-Read `.claude/settings.json`, `.claude/hooks/merge-hook.sh` and `.gitattributes` with `git show origin/<default>:<path>`. Compare the script with this skill's copy, ignoring line endings. Then pick the row that fits and ask the user, offering the action first. The user's answer is the authorization: change these files only if they pick it.
+Read `.claude/settings.json`, `.claude/hooks/merge-hook.sh` and `.gitattributes` with `git show "$(git rev-parse origin/<default>):<path>"`, which takes `<path>` from the repo root and works the same in Git Bash and PowerShell. Don't shorten it to `origin/<default>:<path>`: Git Bash rewrites that argument as a path when `<path>` starts with a dot, and the read fails. Don't set `MSYS_NO_PATHCONV` to get past it either: with it, git and Git Bash can resolve step 3's worktree path to two different folders. When the default branch doesn't have the file, the read fails with an error that starts `fatal: path '<path>'`: that file is absent. Compare the script with this skill's copy, ignoring line endings. Then pick the row that fits and ask the user, offering the action first. The user's answer is the authorization: change these files only if they pick it.
 
 | Merge approval | What the default branch holds | Offer | On a decline, say |
 | --- | --- | --- | --- |
@@ -115,7 +115,17 @@ Work in a separate worktree, so the user's checkout stays as it is:
 git worktree add <tmp-dir> -b agents/shipping-config origin/<default>
 ```
 
-Write every file there, and nowhere else: setup writes nothing in the user's checkout. Write `docs/agents/shipping.md` following the template, with its placeholder text replaced by the values from step 2:
+`<tmp-dir>` is a new folder outside the user's checkout, given as a native absolute path, so that git, the shell and your file-writing tool all reach the same folder. On macOS and Linux, `mktemp -d` gives one. On Windows it's a drive-letter path such as `C:/Users/<you>/AppData/Local/Temp/tmp.abc123`: in Git Bash, take it from `cygpath -m "$(mktemp -d)"`, and in PowerShell, from a new folder under `$env:TEMP`. Never use a POSIX path like `/tmp/...` on Windows: git and Git Bash can resolve it to two different folders.
+
+Before the first write, check that you're in the worktree, from the shell you'll write from:
+
+```text
+cd <tmp-dir> && git rev-parse --abbrev-ref HEAD
+```
+
+It must print `agents/shipping-config`. Git checks a branch out in one worktree at a time, so this can't pass in the user's checkout. Checking only that `<tmp-dir>` exists isn't enough: git can see a worktree the shell can't reach. If the `cd` fails or the output is anything else, the worktree check fails. Stop: write nothing, run `git worktree remove --force <tmp-dir>` and `git branch -D agents/shipping-config` from the user's checkout, and go to **Report**.
+
+Write every file there, and nowhere else: setup writes nothing in the user's checkout. Write files by their absolute path under `<tmp-dir>`, and start each shell command that writes there with `cd <tmp-dir> &&`, so a failed `cd` stops it. Write `docs/agents/shipping.md` following the template, with its placeholder text replaced by the values from step 2:
 
 - Keep the line saying which skill reads the file, taken from the template, and on an update replace an older one with it.
 - Drop the paragraph after it, about running setup or copying the file by hand.
@@ -132,12 +142,12 @@ Keep every other key and entry those files have. Check that `.claude/settings.js
 
 Show the user each file you wrote (or the diff, on an update) and wait for their go-ahead.
 
-Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default> --body-file <file>` with a body listing each value and where it came from, and, when the PR changes them, the merge hook with what it does and the rule with why it goes. Write the body to <file> with your file-writing tool, outside the worktree and the user's checkout, so that no shell rewrites its backticks, quotes or `$`. Remove the worktree with `git worktree remove <tmp-dir>`, and the body file.
+Then commit, `git push -u origin agents/shipping-config`, and `gh pr create --base <default> --body-file <file>` with a body listing each value and where it came from, and, when the PR changes them, the merge hook with what it does and the rule with why it goes. Write the body to <file> with your file-writing tool, outside the worktree and the user's checkout, so that no shell rewrites its backticks, quotes or `$`. Remove the worktree with `git worktree remove <tmp-dir>`, run from the user's checkout: on Windows, git can't delete a folder a shell is still in. Then remove the body file.
 
-Done when the PR is open, the worktree and the body file are removed, and `git status --porcelain` in the user's checkout lists no file that setup wrote.
+Done when either the PR is open and the worktree and the body file are removed, or the worktree check failed and the worktree and its branch are removed; and in both cases `git status --porcelain` in the user's checkout lists no file that setup wrote.
 
 ## Report
 
-- The PR URL. `ship-tickets` can run once it merges. If step 3 was skipped, say instead that `shipping.md` is up to date and `ship-tickets` can run now, or once the preflight failures below are fixed.
+- The PR URL. `ship-tickets` can run once it merges. If step 3 was skipped, say instead that `shipping.md` is up to date and `ship-tickets` can run now, or once the preflight failures below are fixed. If the worktree check failed, say so instead: give `<tmp-dir>` and what the check printed, and say that setup wrote nothing and opened no PR.
 - If the PR changes the merge hook or the rule: Claude Code reads `.claude/` from the local checkout, not the remote, so pull the default branch into the checkout the coordinator runs in once the PR merges, then start the coordinator in a new session. Until then, that checkout keeps what it had.
 - Each preflight failure still open, with the fix the user needs. A failed provenance check names the skill and the path the worker would load it from.

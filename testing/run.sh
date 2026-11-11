@@ -139,6 +139,11 @@ if [ -n "$coordinator_override" ]; then
   [ "$run" != auto-mode ] || { echo "Run auto-mode is Claude Code only." >&2; exit 1; }
   coordinator=$coordinator_override
 fi
+# The coordinator's shells get MSYS_NO_PATHCONV=1, except in setup runs: those
+# keep Git Bash's path conversion on, as a user's shell has it, so setup's
+# commands must work without the variable.
+no_pathconv=true
+if [ "$skill" = setup-ship-tickets ]; then no_pathconv=false; fi
 
 repo_json=$(orca_repo "$repo")
 [ "$repo_json" != null ] || { echo "$repo isn't added to Orca. Clone it and run: orca repo add --path <clone>" >&2; exit 1; }
@@ -203,9 +208,15 @@ log=$here/logs/$run-$stamp.log
 status=$here/logs/$run-$stamp.status
 since=$(date -u +%FT%TZ)
 
+prompt="/$skill${skill_args:+ $skill_args}"
+# With path conversion on, Git Bash passes /<skill> to claude.exe as
+# C:/Program Files/Git/<skill>, but passes //<skill> as /<skill>. A second
+# slash leaves the coordinator's shells nothing to inherit, unlike a variable.
+if $windows && ! $no_pathconv; then prompt="/$prompt"; fi
+
 case $coordinator in
   claude)
-    command=(claude -p "/$skill${skill_args:+ $skill_args}" "${claude_permissions[@]}" --output-format stream-json --verbose) ;;
+    command=(claude -p "$prompt" "${claude_permissions[@]}" --output-format stream-json --verbose) ;;
   opencode)
     command=(opencode run --command "$skill" --auto --format json)
     # The arguments are words without spaces, so splitting them is safe.
@@ -215,7 +226,7 @@ esac
 
 runner=$work/runner.sh
 {
-  echo 'export MSYS_NO_PATHCONV=1'
+  if $no_pathconv; then echo 'export MSYS_NO_PATHCONV=1'; else echo 'unset MSYS_NO_PATHCONV'; fi
   $unset_shell && echo 'unset SHELL'
   $in_orca || echo 'for v in $(env | grep -o "^ORCA_[A-Z_]*"); do unset "$v"; done'
   echo "cd $(printf %q "$clone") || exit 1"

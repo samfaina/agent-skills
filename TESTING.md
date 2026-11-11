@@ -109,6 +109,8 @@ bash testing/run.sh <sandbox> <run> [--coordinator claude|opencode]
 
 `run.sh` resets the sandbox, removes its Orca worktrees, and resets the clone, deleting its local branches. Then it starts the coordinator in a new Orca terminal in the clone, waits for it to exit, and ends with the result of `verify.sh`: `PASS`, or `FAIL` and the check that failed. Nothing asks you anything, so the coordinator runs with permission prompts off, in the sandbox's clone only: `claude -p --dangerously-skip-permissions` or `opencode run --auto`. `--coordinator` picks the harness for runs that can use either.
 
+The coordinator runs with `MSYS_NO_PATHCONV=1`, which stops Git Bash rewriting arguments as paths, in every run but `setup-noop` and `outside-orca`. Those two unset it, so setup runs as it would in a user's Git Bash ([#64](https://github.com/samfaina/agent-skills/issues/64)). They don't catch a setup that sets the variable itself: check that by hand in 1.1.
+
 The coordinator's output goes to `testing/logs/`: the JSON event log, `<run>-<time>.said.txt` with what the coordinator wrote, `<run>-<time>.report.txt` with its last message, and `<run>-<time>.ran.txt` with the commands it ran. Read them when a run fails.
 
 For a loop run, `verify.sh` checks that:
@@ -132,7 +134,7 @@ You can also run `verify.sh` on its own after a run, with the tickets in the ord
 
 ### 1.1 Fresh setup in Claude Code
 
-Reset with `--no-shipping-md`, then delete the label: `gh label delete ready-for-agent --repo <sandbox> --yes`. Run `/setup-ship-tickets` in Claude Code.
+Reset with `--no-shipping-md`, then delete the label: `gh label delete ready-for-agent --repo <sandbox> --yes`. Run `/setup-ship-tickets` in Claude Code, on Windows with its shell set to Git Bash and `MSYS_NO_PATHCONV` unset.
 
 - [ ] The label check fails, and setup offers to create the label. Accept, and confirm it exists again.
 - [ ] The other three preflight checks pass, each with its evidence.
@@ -140,6 +142,7 @@ Reset with `--no-shipping-md`, then delete the label: `gh label delete ready-for
 - [ ] It asks about the unsettled fields with `AskUserQuestion`, offering the inferred value first: Merge approval, Branch naming if it has fewer than three PRs to infer from, and Workers in two rounds (same agent for every role, then the agent id).
 - [ ] The provenance check passes for the implement worker's agent and names the `tdd` and `code-review` folders.
 - [ ] Pick `auto` for Merge approval. Setup offers the merge hook with **Add** first, and says what it approves and what it asks about. Pick **Add**.
+- [ ] On Windows: it reads the merge hook's files from `origin/main` with no retry, reports the ones the reset removed as absent, never sets `MSYS_NO_PATHCONV`, creates its worktree at a drive-letter path, and prints `agents/shipping-config` from it before writing.
 - [ ] It shows the files and waits for your go-ahead before committing. `.claude/hooks/merge-hook.sh` is the same as the skill's copy, `.claude/settings.json` holds the two hook entries and nothing else, and `.gitattributes` keeps the script LF.
 - [ ] It opens a PR from `agents/shipping-config` adding `docs/agents/shipping.md` and the merge hook's files. `shipping.md` follows `shipping-template.md`: it opens with the single "Read by" line, no placeholder text is left, and **Body** lists the sections you confirmed. The PR body lists each value and where it came from, and the merge hook with what it does.
 - [ ] The report says to pull the default branch into the coordinator's checkout once the PR merges.
