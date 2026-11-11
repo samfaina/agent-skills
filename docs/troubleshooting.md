@@ -89,7 +89,7 @@ The harness refused `orca worktree rm` after the merge. Claude Code's auto mode 
 
 The harness refused the **After merge** step from `shipping.md`. Claude Code's auto mode has refused `git push origin --delete <branch>` under its `[Git Destructive]` rule. The ticket is still shipped: the PR is merged and the issue closed. The final report gives the command. Run it yourself, for example with `! git push origin --delete <branch>` in Claude Code.
 
-To stop it happening, turn on **Automatically delete head branches** in the repo's **Settings** → **General** → **Pull Requests**, or with `gh repo edit --delete-branch-on-merge`. Then run `/setup-ship-tickets` again: it sets **After merge** to "nothing", so the loop has no cleanup left to refuse.
+To stop it happening, turn on **Automatically delete head branches**. With Merge approval `auto`, run `/setup-ship-tickets` again and pick **Yes** when it offers to turn the setting on. Otherwise, turn it on in the repo's **Settings** → **General** → **Pull Requests**, or with `gh repo edit --delete-branch-on-merge`, then run `/setup-ship-tickets` again. Either way, setup sets **After merge** to "nothing", so the loop has no cleanup left to refuse.
 
 If the final report shows the deletion failed with another error, its output is in the report. A deletion that fails because the branch is already gone isn't reported: GitHub deleted it.
 

@@ -169,11 +169,13 @@ Each state below goes on `main` of a reset sandbox, and takes a run of `/setup-s
 
 **Replace.** Set Merge approval to `auto`, delete `.claude/hooks/` and `.gitattributes`'s hook line if it has one, and put only `{"permissions": {"allow": ["Bash(gh pr merge * --squash)", "PowerShell(gh pr merge * --squash)"]}}` in `.claude/settings.json`.
 
+- [ ] Setup asks whether to turn on **Automatically delete head branches**, offering **Yes** first. Pick **No**.
 - [ ] With nothing else to change in `shipping.md`, setup still offers **Replace** first, and says what the hook does and what the rule keeps allowing if you decline.
 - [ ] Pick **Replace**. The PR adds the hook's files and removes the rule's entries, leaving no empty `permissions`.
 
 **Update.** Set Merge approval to `auto`, and change a line of `.claude/hooks/merge-hook.sh`.
 
+- [ ] Setup asks whether to turn on **Automatically delete head branches**, offering **Yes** first. Pick **No**.
 - [ ] With nothing else to change in `shipping.md`, setup offers **Update** first, and says what the hook does.
 - [ ] Pick **Update**. The PR puts back the skill's copy of the script and changes nothing else.
 
@@ -188,7 +190,13 @@ Each state below goes on `main` of a reset sandbox, and takes a run of `/setup-s
 
 **Nothing to do.** Set Merge approval to `auto`, and leave the hook as the reset put it.
 
-- [ ] Setup says the hook is settled, reports that `shipping.md` is up to date, and opens no PR.
+- [ ] Setup asks whether to turn on **Automatically delete head branches**, offering **Yes** first. Pick **No**.
+- [ ] Setup says the hook is settled, reports that `shipping.md` is up to date, and opens no PR. The report says the branch-deletion setting was left off.
+
+**Branch deletion on an update.** Set Merge approval to `auto`, and leave the rest as the reset put it.
+
+- [ ] Setup asks whether to turn on **Automatically delete head branches**, offering **Yes** first. Pick **Yes**. It runs `gh repo edit --delete-branch-on-merge` on its own, and `gh repo view <sandbox> --json deleteBranchOnMerge` then shows `true`.
+- [ ] The PR changes only After merge, to "nothing". The report says the setting was turned on.
 
 ## 2. Preflight failures
 
