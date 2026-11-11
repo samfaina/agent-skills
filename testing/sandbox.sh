@@ -66,6 +66,11 @@ reset() {
     done
   )
 
+  # Setup may turn GitHub's branch deletion on (TESTING.md 1.1). Every run
+  # starts with it off, so the loop's After merge step deletes the branch.
+  echo "Turning off automatic deletion of head branches"
+  gh api --method PATCH "repos/$repo" -F delete_branch_on_merge=false >/dev/null
+
   echo "Creating the ready-for-agent label"
   gh label create ready-for-agent --repo "$repo" --force --color 0e8a16 \
     --description "Fully specified, ready for an AFK agent" >/dev/null

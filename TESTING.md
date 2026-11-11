@@ -22,7 +22,7 @@ Run the scripts in bash (Git Bash on Windows), from this repo, with `gh` logged 
 bash testing/sandbox.sh create <sandbox>
 ```
 
-**Reset** before every run by hand. `run.sh` resets on its own. It closes open PRs, force-pushes `main` back to `baseline`, deletes every other branch, and reopens the four tickets as they were, comments deleted.
+**Reset** before every run by hand. `run.sh` resets on its own. It closes open PRs, force-pushes `main` back to `baseline`, deletes every other branch, turns off **Automatically delete head branches**, and reopens the four tickets as they were, comments deleted.
 
 ```bash
 bash testing/sandbox.sh reset <sandbox> [--workers '<value>'] [--no-shipping-md]
@@ -117,7 +117,7 @@ For a loop run, `verify.sh` checks that:
 
 - the tickets merged in order, each PR squash-merged on top of the one before;
 - each PR's title is the issue title, its body has Summary and Testing and ends with `Closes #<n>`, and its branch starts with `<n>-`;
-- each ticket is closed and its remote branch deleted;
+- each ticket is closed and its remote branch deleted, or, in `auto-mode` only, the harness refused the deletion and the last message gives `git push origin --delete <branch>` and names `setup-ship-tickets`;
 - one PR's `changelog` check failed and then passed, so a fix worker ran;
 - no Orca worktree is left for the sandbox, and the run left no reclaimable worker;
 - the coordinator's last message links each merged PR as `/pull/<n>`, in any language; a link in an earlier message doesn't count.
@@ -142,10 +142,11 @@ Reset with `--no-shipping-md`, then delete the label: `gh label delete ready-for
 - [ ] It asks about the unsettled fields with `AskUserQuestion`, offering the inferred value first: Merge approval, Branch naming if it has fewer than three PRs to infer from, and Workers in two rounds (same agent for every role, then the agent id).
 - [ ] The provenance check passes for the implement worker's agent and names the `tdd` and `code-review` folders.
 - [ ] Pick `auto` for Merge approval. Setup offers the merge hook with **Add** first, and says what it approves and what it asks about. Pick **Add**.
+- [ ] Setup asks whether to turn on **Automatically delete head branches**, offering **Yes** first, and says the loop then needs no post-merge cleanup, which auto mode may refuse, leaving a branch behind on every ticket. Pick **Yes**. It runs `gh repo edit --delete-branch-on-merge` on its own, `gh repo view <sandbox> --json deleteBranchOnMerge` then shows `true`, and **After merge** is "nothing".
 - [ ] On Windows: it reads the merge hook's files from `origin/main` with no retry, reports the ones the reset removed as absent, never sets `MSYS_NO_PATHCONV`, creates its worktree at a drive-letter path, and prints `agents/shipping-config` from it before writing.
 - [ ] It shows the files and waits for your go-ahead before committing. `.claude/hooks/merge-hook.sh` is the same as the skill's copy, `.claude/settings.json` holds the two hook entries and nothing else, and `.gitattributes` keeps the script LF.
 - [ ] It opens a PR from `agents/shipping-config` adding `docs/agents/shipping.md` and the merge hook's files. `shipping.md` follows `shipping-template.md`: it opens with the single "Read by" line, no placeholder text is left, and **Body** lists the sections you confirmed. The PR body lists each value and where it came from, and the merge hook with what it does.
-- [ ] The report says to pull the default branch into the coordinator's checkout once the PR merges.
+- [ ] The report says to pull the default branch into the coordinator's checkout once the PR merges, and that the branch-deletion setting was turned on.
 - [ ] `git worktree list` shows no worktree left by the setup, and `git status --porcelain` in the clone prints nothing.
 
 Close the PR without merging.
@@ -154,7 +155,7 @@ Close the PR without merging.
 
 Reset with `--no-shipping-md`, then delete the label as in 1.1. Run `/setup-ship-tickets` in OpenCode.
 
-- [ ] Same as 1.1, but the questions come through OpenCode's `question` tool.
+- [ ] Same as 1.1, but the questions come through OpenCode's `question` tool, and at the branch-deletion question pick **No**: the setting stays off, **After merge** deletes the remote branch with `git push origin --delete <branch>`, and the report says the setting was left off.
 
 Close the PR without merging.
 
@@ -180,6 +181,10 @@ Each state below goes on `main` of a reset sandbox, and takes a run of `/setup-s
 
 - [ ] Setup offers **Remove** first, and doesn't offer the hook.
 - [ ] Pick **Remove**. The PR removes the rule's entries and adds no hook.
+
+**After merge contradicts the repo.** Leave `shipping.md` as the reset put it, with After merge deleting the branch, and turn the setting on: `gh repo edit <sandbox> --delete-branch-on-merge`.
+
+- [ ] Setup asks no branch-deletion question, and the PR changes only After merge, to "nothing". The report says After merge changed because the setting is on.
 
 **Nothing to do.** Set Merge approval to `auto`, and leave the hook as the reset put it.
 
@@ -209,7 +214,7 @@ One run per row of the harness matrix. Each run ships all four tickets unless th
 - [ ] 3.2 passes.
 - [ ] 3.3 passes.
 - [ ] 3.4 passes.
-- [ ] `bash testing/run.sh <sandbox> auto-mode` passes. It runs `/ship-tickets auto 1` in Claude Code with permission checks on (`--permission-mode auto`), where every other Claude Code run skips them. Auto mode refuses a merge no human approved, and the sandbox has no allow rule, so the run merges only if the merge hook approves it, which needs the plain command run on its own. `run.sh` checks that the coordinator ran it with the Bash tool, as the loop says.
+- [ ] `bash testing/run.sh <sandbox> auto-mode` passes. It runs `/ship-tickets auto 1` in Claude Code with permission checks on (`--permission-mode auto`), where every other Claude Code run skips them. Auto mode refuses a merge no human approved, and the sandbox has no allow rule, so the run merges only if the merge hook approves it, which needs the plain command run on its own. `run.sh` checks that the coordinator ran it with the Bash tool, as the loop says, and ran the **After merge** step `git push origin --delete <branch>` on its own with the Bash tool too. Auto mode may refuse that deletion. The run passes either way: with the branch deleted, or with the branch left and the last message giving the command and naming `setup-ship-tickets`. Write in the case's result which one happened.
 - [ ] `bash testing/run.sh <sandbox> order` passes. It runs `/ship-tickets auto 2 3 1` in Claude Code, or in OpenCode with `--coordinator opencode`, and the tickets must merge in the order #3, #2, #1: the numbers set the order, #2 waits until #3 is closed, and then it ships ahead of #1. Lowest-numbered first would merge #1, #3, #2.
 
 Besides `verify.sh`'s checks, `run.sh` checks the commands each coordinator ran: it bound a Run and started workers with the agents Workers names (`--agent claude`, plus `--agent opencode` in 3.3). In 3.4 it also checks that the coordinator resolved `orca` with `Get-Command`, which finds `orca.exe` before `orca.cmd`, and passed the specs as single-quoted here-strings: the two things that get a spec to a worker intact on Windows.

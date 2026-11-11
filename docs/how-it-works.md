@@ -92,7 +92,9 @@ After the merge, the coordinator checks the issue closed, and closes it with a c
 
 ## 7. Clean up
 
-The coordinator runs the after-merge step from `shipping.md` (deleting the remote branch, for example), removes the worktree, and checks that no worker from the run is left behind. Then it picks the next ticket. If the harness refuses to remove the worktree, the coordinator leaves it and the final report gives you the command to remove it.
+The coordinator runs the after-merge step from `shipping.md` (deleting the remote branch, for example), removes the worktree, and checks that no worker from the run is left behind. Then it picks the next ticket.
+
+Each of these commands runs on its own, so the harness's permission check sees exactly what runs. If the harness refuses the after-merge step or the worktree removal, as Claude Code's auto mode can, the coordinator leaves it undone and carries on: the ticket is still shipped, and the final report gives you the command to run. If the branch deletion fails because GitHub already deleted the branch, the step counts as done. Any other error from the after-merge step goes in the final report with its output. To drop the step altogether, turn on GitHub's "Automatically delete head branches" setting: `/setup-ship-tickets` offers to.
 
 ## Workers and specs
 

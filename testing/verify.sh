@@ -17,6 +17,10 @@
 #   --report <file>     the coordinator's last message, which must link each
 #                       merged PR as /pull/<n> (without it, the check is
 #                       skipped; a --stopped run skips it too)
+#   --cleanup-refusable the harness may refuse the post-merge cleanup: a
+#                       remote branch left behind passes when the --report
+#                       file gives `git push origin --delete <branch>` and
+#                       names setup-ship-tickets
 #
 # Exits non-zero on the first failed check and names it.
 set -eEuo pipefail
@@ -25,7 +29,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 . "$here/lib.sh"
 
 usage() {
-  echo "usage: verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… [--report <file>] [tickets…]" >&2
+  echo "usage: verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… [--report <file> [--cleanup-refusable]] [tickets…]" >&2
   echo "       verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… --stopped" >&2
   exit 1
 }
@@ -34,7 +38,7 @@ usage() {
 repo=$1
 shift
 
-since='' log='' report='' stopped=false
+since='' log='' report='' stopped=false cleanup_refusable=false
 expect_logs=() expects=() tickets=()
 while [ $# -gt 0 ]; do
   case $1 in
@@ -43,6 +47,7 @@ while [ $# -gt 0 ]; do
     --expect) [ $# -ge 2 ] && [ -n "$log" ] || usage; expect_logs+=("$log"); expects+=("$2"); shift 2 ;;
     --report) [ $# -ge 2 ] || usage; report=$2; shift 2 ;;
     --stopped) stopped=true; shift ;;
+    --cleanup-refusable) cleanup_refusable=true; shift ;;
     [0-9]*) tickets+=("$1"); shift ;;
     *) usage ;;
   esac
@@ -177,8 +182,15 @@ for i in "${!tickets[@]}"; do
   [[ "$branch" =~ (^|/)$n- ]] || fail "#$n: branch $branch doesn't follow Branch naming (<n>-<title>)"
   ok "#$n: branch $branch follows Branch naming"
   left=$(gh api "repos/$repo/git/matching-refs/heads/$branch" --jq "map(select(.ref == \"refs/heads/$branch\")) | length")
-  [ "$left" = 0 ] || fail "#$n: remote branch $branch still exists"
-  ok "#$n: remote branch $branch deleted"
+  if [ "$left" = 0 ]; then
+    ok "#$n: remote branch $branch deleted"
+  elif $cleanup_refusable && [ -n "$report" ]     && gives_command "$report" "git push origin --delete $branch"     && grep -q 'setup-ship-tickets' "$report"; then
+    # A cleanup the harness refused: the report hands the user the command and
+    # names the setup that turns on GitHub's own branch deletion.
+    ok "#$n: remote branch $branch left, and the report gives the command to delete it"
+  else
+    fail "#$n: remote branch $branch still exists"
+  fi
 done
 
 # A PR whose changelog check went red on an earlier commit and green on its head.

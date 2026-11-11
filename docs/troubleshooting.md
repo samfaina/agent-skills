@@ -85,6 +85,14 @@ Pick **Yes** to merge that one PR. Pick **No** to stop the turn and tell the coo
 
 The harness refused `orca worktree rm` after the merge. Claude Code's auto mode has done this once, without naming a rule. The ticket is still shipped: the PR is merged and the issue closed. The final report gives the command. Run it yourself, for example with `! orca worktree rm --worktree issue:<n> --json` in Claude Code. If this happens on every run, add to [#54](https://github.com/samfaina/agent-skills/issues/54).
 
+## A merged ticket's remote branch is still there
+
+The harness refused the **After merge** step from `shipping.md`. Claude Code's auto mode has refused `git push origin --delete <branch>` under its `[Git Destructive]` rule. The ticket is still shipped: the PR is merged and the issue closed. The final report gives the command. Run it yourself, for example with `! git push origin --delete <branch>` in Claude Code.
+
+To stop it happening, turn on **Automatically delete head branches** in the repo's **Settings** → **General** → **Pull Requests**, or with `gh repo edit --delete-branch-on-merge`. Then run `/setup-ship-tickets` again: it sets **After merge** to "nothing", so the loop has no cleanup left to refuse.
+
+If the final report shows the deletion failed with another error, its output is in the report. A deletion that fails because the branch is already gone isn't reported: GitHub deleted it.
+
 ## You chose Stop
 
 The PR stays open as it is, and the loop ends. Merge or close it yourself, then run the skill again for the tickets that are left.

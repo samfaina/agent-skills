@@ -30,6 +30,17 @@ unlinked_prs() {
   done
 }
 
+# Succeeds when <file> gives <command> exactly, not followed by more of a
+# branch name, such as a cleanup the harness refused for the user to run.
+gives_command() {
+  C=$2 awk '
+    { s = $0; while ((i = index(s, ENVIRON["C"])) > 0) {
+        s = substr(s, i + length(ENVIRON["C"]))
+        if (s !~ /^[A-Za-z0-9._\/-]/) { found = 1; exit }
+    } }
+    END { exit !found }' "$1"
+}
+
 # Prints the Orca repo entry of <owner/repo> as JSON, or `null` when the
 # sandbox isn't added to Orca.
 orca_repo() {

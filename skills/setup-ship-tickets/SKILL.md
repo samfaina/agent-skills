@@ -39,7 +39,7 @@ For each field, take the value from the first source that settles it:
 | Merge method | the one method `mergeCommitAllowed` / `squashMergeAllowed` / `rebaseMergeAllowed` allows; with several allowed, it stays unsettled |
 | Merge approval | no repo setting covers it, so it stays unsettled; the inferred value is `ask` |
 | Branch naming | the pattern in `gh pr list --state all --limit 30 --json headRefName` |
-| After merge | `deleteBranchOnMerge: true` → "nothing"; otherwise delete the remote branch |
+| After merge | `deleteBranchOnMerge: true` → "nothing"; otherwise the branch-deletion question below settles it |
 | CI | `pull_request` triggers in `.github/workflows/`, plus `gh pr view <recent-pr> --json statusCheckRollup` on two or three recent PRs to catch external checks. Checks found → `required`; none → `none` |
 | PR title and body | `.github/pull_request_template.md` (or `.github/PULL_REQUEST_TEMPLATE/`) if present; otherwise the sections the last merged PRs share (`gh pr view <n> --json title,body`) |
 | Workers | no repo setting covers it, so it stays unsettled; the inferred value is `claude` for all roles |
@@ -47,6 +47,13 @@ For each field, take the value from the first source that settles it:
 A field is **settled** when one source gives one clear answer. Collect the unsettled ones, plus any inference resting on fewer than three examples, and ask the user about them, each question offering the inferred value first. Wait for the answers; if your harness has a structured question tool, use it.
 
 Ask about Workers in two rounds. First ask whether every worker role uses the same agent or each role gets its own. Then ask for the Orca agent id: one question for all roles, or one per role. `orca orchestration worker-start --help` lists the ids Orca knows, such as `codex` and `opencode`.
+
+Settle **After merge** once Merge approval is settled, since the question depends on it. When `deleteBranchOnMerge` is `false` and this run gathers the field (a fresh setup, or a file without it), ask whether to turn on GitHub's "Automatically delete head branches" setting, offering **Yes** first. Say why: GitHub then deletes each branch when its PR merges, so the loop needs no post-merge cleanup, which Claude Code's auto mode may refuse. With Merge approval `auto`, add that such a refusal would leave a remote branch behind on every ticket. The user's answer is the authorization: change the repo setting only if they pick **Yes**.
+
+- **Yes**: run `gh repo edit --delete-branch-on-merge` as a command of its own, with nothing chained before or after it. If it succeeds, After merge is "nothing". If it fails (for example, the user isn't an admin of the repo) or the harness's permission check refuses it, After merge is "delete the remote branch with `git push origin --delete <branch>`", and the report gives the command and the setting, for the user to change themselves.
+- **No**: After merge is "delete the remote branch with `git push origin --delete <branch>`".
+
+On an update, a file whose After merge deletes the branch while `deleteBranchOnMerge` is `true` contradicts the repo settings: GitHub deletes the branch first, so the step would fail. Gather the field again: it is "nothing", and the report says why it changed.
 
 Once Workers is settled, run the provenance check for the implement worker's agent and record its result alongside the preflight checks. The check is `skill-provenance.md` in the `ship-tickets` skill's folder, which sits beside this skill's folder (`../ship-tickets/`).
 
@@ -105,7 +112,7 @@ When you offer **Add**, **Replace** or **Update**, say what the hook does:
 
 On an update, work out the files step 3 would write: `shipping.md` from the template and the values gathered here, plus the hook's files and the rule's removal if the user chose them. If `shipping.md` is the same as the one on the default branch and no hook or rule file changes, nothing needs to change: skip step 3, create no worktree and open no PR, and go to **Report**.
 
-Done when every field in the template holds a value, the user has confirmed each unsettled one, the provenance check has a recorded result, the merge hook is settled, changed or declined, and on an update you know whether any file changes.
+Done when every field in the template holds a value, the user has confirmed each unsettled one, the branch-deletion question is answered and acted on when it was asked, the provenance check has a recorded result, the merge hook is settled, changed or declined, and on an update you know whether any file changes.
 
 ## 3. Open the PR
 
@@ -150,4 +157,5 @@ Done when either the PR is open and the worktree and the body file are removed, 
 
 - The PR URL. `ship-tickets` can run once it merges. If step 3 was skipped, say instead that `shipping.md` is up to date and `ship-tickets` can run now, or once the preflight failures below are fixed. If the worktree check failed, say so instead: give `<tmp-dir>` and what the check printed, and say that setup wrote nothing and opened no PR.
 - If the PR changes the merge hook or the rule: Claude Code reads `.claude/` from the local checkout, not the remote, so pull the default branch into the checkout the coordinator runs in once the PR merges, then start the coordinator in a new session. Until then, that checkout keeps what it had.
+- What happened to GitHub's "Automatically delete head branches" setting: turned on, already on, left off, or couldn't be changed. When it couldn't, give the error or the refusal, the command `gh repo edit --delete-branch-on-merge`, and the setting under **Settings** → **General** → **Pull Requests**, for the user to change themselves. When an update changed After merge to "nothing" because the setting is on, say so.
 - Each preflight failure still open, with the fix the user needs. A failed provenance check names the skill and the path the worker would load it from.

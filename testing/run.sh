@@ -86,7 +86,7 @@ copy_tdd() {
 reset_args=() coordinator=claude skill=ship-tickets skill_args=auto prepare=''
 claude_permissions=(--dangerously-skip-permissions)
 tickets=(1 3 2 4) stopped=false in_orca=true unset_shell=false
-said=() ran=('run-create')
+said=() ran=('run-create') verify_extra=()
 case $run in
   3.2) coordinator=opencode ran+=('--agent claude') ;;
   3.3)
@@ -103,8 +103,11 @@ case $run in
     # Auto mode refuses a merge no human approved, unless the sandbox's merge
     # hook approves it. The sandbox has no allow rule, so a merge here means the
     # hook checked the PR and approved the plain command.
+    # Auto mode may also refuse the post-merge branch deletion: then the report
+    # must hand the user the command. Either way, it runs on its own in Bash.
     claude_permissions=(--permission-mode auto) skill_args='auto 1' tickets=(1)
-    ran+=('^Bash: gh pr merge [0-9]+ --squash$')
+    ran+=('^Bash: gh pr merge [0-9]+ --squash$' '^Bash: git push origin --delete [^ ;&|]+$')
+    verify_extra=(--cleanup-refusable)
     ;;
   order)
     # The numbers set the order, and #2 waits for #3, then takes its place
@@ -282,6 +285,6 @@ for regex in ${ran[@]+"${ran[@]}"}; do verify_args+=(--expect "$regex"); done
 if $stopped; then
   verify_args+=(--stopped)
 else
-  verify_args+=(--report "$out.report.txt" "${tickets[@]}")
+  verify_args+=(--report "$out.report.txt" ${verify_extra[@]+"${verify_extra[@]}"} "${tickets[@]}")
 fi
 bash "$here/verify.sh" "$repo" "${verify_args[@]}"
