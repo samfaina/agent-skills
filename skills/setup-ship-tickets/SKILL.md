@@ -48,10 +48,17 @@ A field is **settled** when one source gives one clear answer. Collect the unset
 
 Ask about Workers in two rounds. First ask whether every worker role uses the same agent or each role gets its own. Then ask for the Orca agent id: one question for all roles, or one per role. `orca orchestration worker-start --help` lists the ids Orca knows, such as `codex` and `opencode`.
 
-Settle **After merge** once Merge approval is settled, since the question depends on it. When `deleteBranchOnMerge` is `false` and this run gathers the field (a fresh setup, a file without it, or a file whose "nothing" contradicts the setting), ask whether to turn on GitHub's "Automatically delete head branches" setting, offering **Yes** first. Say why: GitHub then deletes each branch when its PR merges, so the loop needs no post-merge cleanup, which Claude Code's auto mode may refuse. With Merge approval `auto`, add that such a refusal would leave a remote branch behind on every ticket. The user's answer is the authorization: change the repo setting only if they pick **Yes**.
+Settle **After merge** once Merge approval is settled, since the question depends on it. When `deleteBranchOnMerge` is `false`, ask the **branch-deletion question** when either holds:
 
-- **Yes**: run `gh repo edit --delete-branch-on-merge` as a command of its own, with nothing chained before or after it. If it succeeds, After merge is "nothing". If it fails (for example, the user isn't an admin of the repo) or the harness's permission check refuses it, After merge is "delete the remote branch with `git push origin --delete <branch>`", and the report gives the command and the setting, for the user to change themselves.
-- **No**: After merge is "delete the remote branch with `git push origin --delete <branch>`".
+- This run gathers the field: a fresh setup, a file without it, or a file whose "nothing" contradicts the setting.
+- This is an update whose After merge deletes the remote branch, and Merge approval, as this run settles it, is `auto`.
+
+The **deletion step** is "delete the remote branch with `git push origin --delete <branch>`" in the first case, and the file's own After merge, word for word, in the second.
+
+The question asks whether to turn on GitHub's "Automatically delete head branches" setting, offering **Yes** first. Say why: GitHub then deletes each branch when its PR merges, so the loop needs no post-merge cleanup, which Claude Code's auto mode may refuse. With Merge approval `auto`, add that such a refusal would leave a remote branch behind on every ticket. The user's answer is the authorization: change the repo setting only if they pick **Yes**.
+
+- **Yes**: run `gh repo edit --delete-branch-on-merge` as a command of its own, with nothing chained before or after it. If it succeeds, After merge is "nothing". If it fails (for example, the user isn't an admin of the repo) or the harness's permission check refuses it, After merge is the deletion step, and the report gives the command and the setting, for the user to change themselves.
+- **No**: After merge is the deletion step. Nothing records the answer, so the next update with Merge approval `auto` asks again, as the merge hook's **Add** offer does after a decline.
 
 On an update, a file whose After merge deletes the branch while `deleteBranchOnMerge` is `true` contradicts the repo settings: GitHub deletes the branch first, so the step would fail. Gather the field again: it is "nothing", and the report says why it changed.
 
