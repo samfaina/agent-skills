@@ -184,7 +184,9 @@ for i in "${!tickets[@]}"; do
   left=$(gh api "repos/$repo/git/matching-refs/heads/$branch" --jq "map(select(.ref == \"refs/heads/$branch\")) | length")
   if [ "$left" = 0 ]; then
     ok "#$n: remote branch $branch deleted"
-  elif $cleanup_refusable && [ -n "$report" ]     && gives_command "$report" "git push origin --delete $branch"     && grep -q 'setup-ship-tickets' "$report"; then
+  elif $cleanup_refusable && [ -n "$report" ] \
+    && gives_command "$report" "git push origin --delete $branch" \
+    && grep -q 'setup-ship-tickets' "$report"; then
     # A cleanup the harness refused: the report hands the user the command and
     # names the setup that turns on GitHub's own branch deletion.
     ok "#$n: remote branch $branch left, and the report gives the command to delete it"

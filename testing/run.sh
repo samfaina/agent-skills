@@ -86,7 +86,7 @@ copy_tdd() {
 reset_args=() coordinator=claude skill=ship-tickets skill_args=auto prepare=''
 claude_permissions=(--dangerously-skip-permissions)
 tickets=(1 3 2 4) stopped=false in_orca=true unset_shell=false
-said=() ran=('run-create') verify_extra=()
+said=() ran=('run-create') cleanup_refusable=false
 case $run in
   3.2) coordinator=opencode ran+=('--agent claude') ;;
   3.3)
@@ -107,7 +107,7 @@ case $run in
     # must hand the user the command. Either way, it runs on its own in Bash.
     claude_permissions=(--permission-mode auto) skill_args='auto 1' tickets=(1)
     ran+=('^Bash: gh pr merge [0-9]+ --squash$' '^Bash: git push origin --delete [^ ;&|]+$')
-    verify_extra=(--cleanup-refusable)
+    cleanup_refusable=true
     ;;
   order)
     # The numbers set the order, and #2 waits for #3, then takes its place
@@ -285,6 +285,8 @@ for regex in ${ran[@]+"${ran[@]}"}; do verify_args+=(--expect "$regex"); done
 if $stopped; then
   verify_args+=(--stopped)
 else
-  verify_args+=(--report "$out.report.txt" ${verify_extra[@]+"${verify_extra[@]}"} "${tickets[@]}")
+  verify_args+=(--report "$out.report.txt")
+  ! $cleanup_refusable || verify_args+=(--cleanup-refusable)
+  verify_args+=("${tickets[@]}")
 fi
 bash "$here/verify.sh" "$repo" "${verify_args[@]}"

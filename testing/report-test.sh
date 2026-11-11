@@ -103,6 +103,10 @@ check "gives_command: a longer branch name isn't this branch" no \
   "$(gives "$work/refused.txt" 'git push origin --delete samfaina/1-add-slugify')"
 check "gives_command: a dot in the branch matches only a dot" no \
   "$(gives "$work/refused.txt" 'git push origin --delete samfaina/1-add-slugifyxv2')"
+# Git forbids a branch name ending in a dot, so a period after it ends a sentence.
+echo 'Run git push origin --delete 1-add-slugify.' > "$work/sentence.txt"
+check "gives_command: a sentence's period isn't part of the branch" yes \
+  "$(gives "$work/sentence.txt" 'git push origin --delete 1-add-slugify')"
 
 [ "$failures" = 0 ] || { echo "$failures failed" >&2; exit 1; }
 echo "PASS"

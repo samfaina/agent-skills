@@ -31,12 +31,14 @@ unlinked_prs() {
 }
 
 # Succeeds when <file> gives <command> exactly, not followed by more of a
-# branch name, such as a cleanup the harness refused for the user to run.
+# branch name, such as a cleanup the harness refused for the user to run. A
+# branch name never ends in a dot, so a dot that ends the text or comes before
+# anything but a name character ends a sentence.
 gives_command() {
   C=$2 awk '
     { s = $0; while ((i = index(s, ENVIRON["C"])) > 0) {
         s = substr(s, i + length(ENVIRON["C"]))
-        if (s !~ /^[A-Za-z0-9._\/-]/) { found = 1; exit }
+        if (s !~ /^([A-Za-z0-9_\/-]|\.[A-Za-z0-9_\/-])/) { found = 1; exit }
     } }
     END { exit !found }' "$1"
 }
