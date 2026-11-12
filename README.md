@@ -22,10 +22,13 @@ With no issue numbers, `/ship-tickets` takes every open issue labelled `ready-fo
 
 ## Install
 
-In Claude Code, as a plugin:
+In Claude Code, as a plugin. Send each command as its own message: pasted together, Claude Code reads the second as part of the first.
 
 ```
 /plugin marketplace add samfaina/agent-skills
+```
+
+```
 /plugin install agent-skills@samfaina
 ```
 
@@ -73,6 +76,9 @@ In Claude Code, add your checkout as a marketplace instead of the GitHub repo:
 
 ```
 /plugin marketplace add <path-to-checkout>
+```
+
+```
 /plugin install agent-skills@samfaina
 ```
 

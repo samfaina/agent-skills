@@ -96,6 +96,10 @@ On 0.4.4, on a 16 GB GPU with 62 GB of RAM, five models at Q4 with a 128k contex
 
 `glm-4.7-flash` can stand in as the PR and fix worker. None of the five is reliable enough to coordinate. The failures are the models', not the skills': cloud models passed the same cases on 0.4.4 ([#30](https://github.com/samfaina/agent-skills/issues/30)).
 
+## The docs
+
+- [ ] `bash testing/docs-test.sh` passes. Every block a reader can copy from `README.md` and `docs/`, the landing page's copy buttons included, holds at most one slash command: Claude Code takes one command per message, so a pasted pair fails.
+
 ## The merge hook
 
 - [ ] `bash testing/merge-hook-test.sh` passes. It runs the hook's script with a fake `gh`, with no network: each selector and each tool, for a PR of the repo, an External PR, a `gh` failure, and the forms of `gh pr merge` the hook asks about.
