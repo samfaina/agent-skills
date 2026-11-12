@@ -37,12 +37,21 @@ Install the skills in each harness you run a coordinator in, and Matt Pocock's s
 | OpenCode | `npx skills add samfaina/agent-skills --agent opencode` | `npx skills add mattpocock/skills --agent opencode` |
 | Others | `npx skills add samfaina/agent-skills` | `npx skills add mattpocock/skills` |
 
-The Claude Code plugins:
+The Claude Code plugins. Send each command as its own message: pasted together, Claude Code reads the second as part of the first.
 
 ```
 /plugin marketplace add samfaina/agent-skills
+```
+
+```
 /plugin install agent-skills@samfaina
+```
+
+```
 /plugin marketplace add mattpocock/skills
+```
+
+```
 /plugin install mattpocock-skills@mattpocock
 ```
 

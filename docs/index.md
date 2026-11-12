@@ -52,9 +52,9 @@ nav_order: 1
     <div class="cell">
       <span class="k">once · per harness</span>
       <h3>Install the skills</h3>
-      <p>In Claude Code, as a plugin:</p>
-      <div class="install"><code>/plugin marketplace add samfaina/agent-skills
-/plugin install agent-skills@samfaina</code><button class="copy-button" type="button" aria-label="Copy the plugin install commands">copy</button></div>
+      <p>In Claude Code, as a plugin, one command at a time:</p>
+      <div class="install"><code>/plugin marketplace add samfaina/agent-skills</code><button class="copy-button" type="button" aria-label="Copy the marketplace add command">copy</button></div>
+      <div class="install"><code>/plugin install agent-skills@samfaina</code><button class="copy-button" type="button" aria-label="Copy the plugin install command">copy</button></div>
       <p>In OpenCode and other harnesses:</p>
       <div class="install"><code>npx skills add samfaina/agent-skills</code><button class="copy-button" type="button" aria-label="Copy the skills.sh install command">copy</button></div>
       <p>One or the other per harness, not both. <a href="{{ '/harnesses#install' | relative_url }}">Install per harness →</a></p>

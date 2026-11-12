@@ -22,10 +22,13 @@ nav_order: 2
 
 ## Install the skills
 
-In Claude Code, install the plugin:
+In Claude Code, install the plugin. Send each command as its own message: pasted together, Claude Code reads the second as part of the first.
 
 ```
 /plugin marketplace add samfaina/agent-skills
+```
+
+```
 /plugin install agent-skills@samfaina
 ```
 
