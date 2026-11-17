@@ -45,7 +45,7 @@ gives_command() {
 
 # Prints the number of each issue created at or after <since>, one per line,
 # from the JSON of `gh issue list --json number,createdAt` on stdin, leaving
-# out the issue numbers after <since>.
+# out the issue numbers given as the arguments after <since>.
 issues_opened() {
   js 'd.filter((i) => i.createdAt >= a[1] && !a.slice(2).includes(String(i.number))).map((i) => i.number)' "$@"
 }

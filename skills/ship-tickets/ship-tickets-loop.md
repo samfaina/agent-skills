@@ -138,9 +138,10 @@ After the final report, whether the loop finished or stopped, offer the follow-u
 
 1. **Gather.** Merge follow-ups from this run that describe the same work into one, keeping every ticket it came from. Search the open issues for each one, such as `gh issue list --state open --search "<key words of its title>" --json number,title --limit 5`, and mark each issue that looks like the same work as "possible duplicate of #x". Drop none: the user decides.
 2. **Offer.** Show a numbered list, one entry per follow-up: its title, what the worker saw and where, the ticket it came from, and its possible duplicates. Ask which to open: all, none, or the numbers. If your harness has a structured question tool, use it with the options **All**, **None** and **Choose**, and on **Choose** ask for the numbers. Open nothing until the user answers, even with Merge approval `auto`: that covers merges only.
+
    If no one can answer, as in a non-interactive run where a question gets no reply, don't ask: end your last message, the one with the final report, with the numbered list, and open none.
 3. **Open.** For each follow-up the user picked, write the issue body with your file-writing tool, outside the repo: what the worker saw, the files or lines it named, and as its last line `Found while shipping #<n> (PR #<pr>)`, or `Found while shipping #<n>` when that ticket stopped before its PR. A follow-up merged from several tickets gets one such line per ticket. Open it with `gh issue create --title "<title>" --body-file <file>`, adding `--label needs-triage` when `gh label list --json name --jq '.[].name'` lists `needs-triage`, and no label otherwise. Never label it `ready-for-agent`: no one has triaged it.
-4. Give the user the link of each issue you opened.
+4. **Link.** Give the user the link of each issue you opened.
 
 ## Specs
 
@@ -166,7 +167,7 @@ Constraints: follow the repo's agent instruction files (AGENTS.md, CLAUDE.md and
 
 Ownership: this worktree and its branch.
 
-Observable acceptance: every acceptance criterion in #<n> is met, the full test suite passes, and the work is committed with a clean working tree. The worker_done summary has the `follow-ups:` block, then ends with the `tdd:` and `code-review:` lines.
+Observable acceptance: every acceptance criterion in #<n> is met, the full test suite passes, and the work is committed with a clean working tree. The worker_done summary ends with the `tdd:` and `code-review:` lines.
 ```
 
 ### PR spec
@@ -196,5 +197,5 @@ Constraints: stay within the scope of issue #<n>. When the reason, from CI or fr
 
 Ownership: this branch.
 
-Observable acceptance: the checks named in the reason pass locally, the fix is pushed, and the worker_done summary has the `follow-ups:` block.
+Observable acceptance: the checks named in the reason pass locally and the fix is pushed.
 ```
