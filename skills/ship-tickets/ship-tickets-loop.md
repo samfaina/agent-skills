@@ -57,9 +57,17 @@ Pass every spec this way.
 
 Orca titles each worker's tab `worker-<task id>`, which doesn't say which ticket or role it is. Give the tab the task title: take the worker's terminal handle from `terminal` in the `worker-start` result, then run `orca terminal rename --terminal <handle> --title "#<n> implement"`. Do the same for every worker you start below, with its own task title. The title only labels the tab, since Orca tracks the worker by its dispatch and handle. If the result has no `terminal` or the rename fails, carry on.
 
-Then wait as the guide says (`check --wait --types worker_done,escalation,question`).
+Then wait as the guide says (`check --wait --types worker_done,escalation,question`). Wait the same way on every worker you start below, and handle its questions and escalations as here.
 
 Answer each worker `question` with `reply`. Answer from the ticket and the repo when they hold the answer, otherwise ask the user and relay what they say.
+
+An `escalation` with `stopReason: needs-input` usually means the worker hit a permission prompt that no one was at its terminal to answer, such as the one a file edit made through a shell heredoc raises. Steer it, then keep waiting:
+
+```text
+orca orchestration send --to dispatch:<dispatch_id> --subject "Use your file-editing tool" --body "No one can answer a permission prompt in your terminal. If the command that raised it changed a file, redo the change with your file-editing tool (Edit or Write in Claude Code) instead of retrying the shell command. Then carry on with your task."
+```
+
+The worker reads the steer once its prompt closes. Sending it doesn't stop the loop, doesn't count as a fix round, and doesn't change the step's acceptance check. This step covers `needs-input` only: handle an escalation with any other `stopReason` as the guide says.
 
 Accept `--outcome succeeded` when:
 
@@ -163,7 +171,7 @@ Change: build what the ticket asks. Read it first with `gh issue view <n> --comm
 
 If `tdd` or `code-review` is not available to you, stop, and settle with `--outcome failed`, naming the missing skill.
 
-Constraints: follow the repo's agent instruction files (AGENTS.md, CLAUDE.md and the like) and the docs they point to. Keep the commits local: another worker pushes the branch and opens the PR.
+Constraints: follow the repo's agent instruction files (AGENTS.md, CLAUDE.md and the like) and the docs they point to. Keep the commits local: another worker pushes the branch and opens the PR. Change files with your file-editing tool (Edit or Write in Claude Code), never with shell scripts, heredocs or redirections: no one is at your terminal to answer the permission prompt those can raise, so it waits, then refuses.
 
 Ownership: this worktree and its branch.
 
@@ -193,7 +201,7 @@ Reason: <reason>
 
 Change: fix what the reason describes, run the checks it concerns locally, commit, and push. For a CI failure, find it with `gh pr checks <pr>` and `gh run view <run-id> --log-failed`, and reproduce it with the commands in the repo's CI workflow. Then settle with `worker_done`, and in its summary list your follow-ups: work in this repo outside the scope of issue #<n> that you found or were asked for. Write a `follow-ups:` line with one line under it per follow-up, `- <title>: <what you saw and where>`, or write `follow-ups: none`. Trouble with your own job, such as a tool that failed, is not a follow-up: report it in the summary as usual.
 
-Constraints: stay within the scope of issue #<n>. When the reason, from CI or from the user's notes, asks for something outside that scope, don't do it: report it as a follow-up.
+Constraints: stay within the scope of issue #<n>. When the reason, from CI or from the user's notes, asks for something outside that scope, don't do it: report it as a follow-up. Change files with your file-editing tool (Edit or Write in Claude Code), never with shell scripts, heredocs or redirections: no one is at your terminal to answer the permission prompt those can raise, so it waits, then refuses.
 
 Ownership: this branch.
 
