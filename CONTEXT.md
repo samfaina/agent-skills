@@ -25,7 +25,7 @@ A PR whose head branch lives in another repo, such as a fork, or that belongs to
 _Avoid_: fork PR, foreign PR, third-party PR
 
 **Follow-up**:
-Work in the repo being shipped that a worker finds outside its ticket's scope, such as a bug it saw in passing or a review finding it left for later. The coordinator offers it to the user as a new issue; trouble with the loop itself is not a follow-up.
+Work in the repo being shipped that a worker finds already wrong on the base branch before its ticket's first commit, such as a bug it saw in passing, or that a fix worker's reason asks for outside the ticket. A review finding about code the ticket's diff introduced is part of the ticket, not a follow-up. The coordinator offers follow-ups to the user as new issues; trouble with the loop itself is not a follow-up.
 _Avoid_: pending ticket, leftover, TODO
 
 **Worker role**:

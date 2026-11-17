@@ -79,6 +79,27 @@ Some workers write those lines only after they settle. If the summary lacks them
 
 Keep the worker's **follow-ups** with the ticket: each line of the `follow-ups:` block in its summary, or wherever you found the `tdd:` and `code-review:` lines. You offer them after the final report (see "Follow-ups"). A summary without the block has no follow-ups: that never stops the loop or fails the acceptance check.
 
+A follow-up is work that was already wrong on `origin/<base>`. Before you release the worker, check each one against the files the branch changed, `git -C <path> diff --name-only origin/<base>..HEAD`. A follow-up that names a file in that list, or that names no file, goes back to the worker, which fixes it or shows it was already there. Send all of them in one message, its body passed as you pass a spec:
+
+```text
+orca orchestration send --to dispatch:<dispatch_id> --subject "Follow-ups in your diff" --body "$body"
+```
+
+```text
+These follow-ups name a file your branch changed, or no file. A problem in code your diff introduced is part of #<n>. For each one, either fix it and commit, or say why it was already wrong on origin/<base> before your first commit. Then settle with worker_done again. In its summary, write a `sent-back:` line with one line under it per follow-up, `- <title>: fixed` or `- <title>: pre-existing, <why>`.
+<each follow-up sent back, as its `- <title>: <what you saw and where>` line>
+```
+
+Orca's guide says a worker that has settled gets a `send` as a new Task and reports on it with a new `worker_done`, as the `send` receipt says. Orca can release a settled worker on its own about two minutes after its `worker_done`, and a `send` reopens a worker it closed. Wait for that `worker_done` as above, and steer a `needs-input` escalation as above. Accept the reply when `git -C <path> log origin/<base>..HEAD --oneline` still lists commits, `git -C <path> status --porcelain` is still empty, and its `sent-back:` block has a `fixed` line, or a `pre-existing` line with a reason, for each follow-up you sent. Then drop the fixed ones from the ticket's follow-ups and keep the pre-existing ones as the worker first wrote them, beside the follow-ups that named only files the branch didn't change. For the final report, keep each follow-up you sent back and how it was resolved.
+
+The loop stops at this step, with the follow-ups sent back unresolved, when:
+
+- the `send` receipt says the worker refused the message, as a finished worker on a paired Orca server does;
+- the reply settles with `--outcome failed`, or fails its acceptance check;
+- an escalation says the worker `exited` or was `lost`.
+
+Silence is not one of them: as for any worker, an empty or timed-out wait is a checkpoint, so keep waiting, and never release a worker whose reply hasn't been accepted.
+
 Then `worker-release`. There is nothing to acknowledge: the `check` that returned the `worker_done` already marked it handled.
 
 ### 4. PR worker
@@ -97,7 +118,7 @@ If `shipping.md` sets **CI** to `none`, go to step 6. A file without the field m
 2. **Checks settled.** Run `gh pr checks <pr> --watch --fail-fast --interval 30`. This can run for many minutes. If your harness notifies you when a background command exits, run it in the background: in Claude Code, with the Bash tool's `run_in_background`, then wait for the notification that it exited. Otherwise run it in the foreground, and if it times out, run it again until it exits with a result; it is safe to rerun.
 
 - **Exit 0 (green)** → step 6.
-- **Non-zero (red)** → start a **fix worker** in the same worktree: `worker-start --worktree issue:<n> --agent <fix agent> --task-title "#<n> fix"` with the fix spec and the CI failure as its reason. Accept it when it reports the fix pushed, keep its follow-ups with the ticket as in step 3, then run step 5 again. A ticket gets at most **2** fix workers for CI. After the third red run, stop the loop.
+- **Non-zero (red)** → start a **fix worker** in the same worktree: `worker-start --worktree issue:<n> --agent <fix agent> --task-title "#<n> fix"` with the fix spec and the CI failure as its reason. Accept it when it reports the fix pushed, keep its follow-ups with the ticket as in step 3, then run step 5 again. A fix worker's follow-ups skip step 3's file check: they include the work its reason asks for outside the ticket, which often names a file the branch changed, so the check can't tell it from a finding the worker should have fixed. The fix spec's own rule covers that case. A ticket gets at most **2** fix workers for CI. After the third red run, stop the loop.
 
 ### 6. Merge
 
@@ -127,6 +148,7 @@ Done when the PR is merged, the ticket is closed, the **After merge** step is do
 Stop the loop and leave the ticket's worktree and PR exactly as they are when:
 
 - a worker settles with `--outcome failed`, or its result fails the acceptance check of its step;
+- an implement worker can't resolve the follow-ups sent back to it at step 3: it refuses the message, fails, or is gone;
 - CI is red after 2 fix workers, or no check starts within 10 minutes;
 - `worker-start` exits non-zero (follow its receipt and the recovery reference, and launch no duplicate);
 - the user picks **Stop** at step 6;
@@ -134,7 +156,7 @@ Stop the loop and leave the ticket's worktree and PR exactly as they are when:
 
 ## Final report
 
-Per ticket in the set: **merged** (PR link, whether the user approved a merge the harness refused, the exact **After merge** command for a cleanup the harness refused, the command and its output for a cleanup that failed, and the `worktree rm` command for any removal the harness refused), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it, or the failed provenance check).
+Per ticket in the set: **merged** (PR link, whether the user approved a merge the harness refused, the exact **After merge** command for a cleanup the harness refused, the command and its output for a cleanup that failed, and the `worktree rm` command for any removal the harness refused), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it, or the failed provenance check). For a merged or stopped ticket, also list each follow-up sent back at step 3 and how it was resolved: fixed, kept as pre-existing with the worker's reason, or unresolved because the loop stopped.
 
 If the harness refused a cleanup, also say that turning on GitHub's "Automatically delete head branches" setting and running `setup-ship-tickets` again removes the step: GitHub then deletes the branch on merge, and **After merge** becomes "nothing".
 
@@ -165,9 +187,9 @@ Target: GitHub issue #<n> in <owner>/<repo>, worked in this worktree on branch <
 Change: build what the ticket asks. Read it first with `gh issue view <n> --comments`, plus any spec or parent issue it links. Then:
 - Build test-first: call the Skill tool with `tdd` (in Claude Code, `mattpocock-skills:tdd`), at the seams the ticket or its spec names.
 - Run typechecking and single test files as you go, and the full test suite once at the end.
-- Review your diff: call the Skill tool with `code-review` (in Claude Code, `mattpocock-skills:code-review`, not its built-in `code-review`), against `origin/<base>` with issue #<n> as the spec, and fix what it finds.
+- Review your diff: call the Skill tool with `code-review` (in Claude Code, `mattpocock-skills:code-review`, not its built-in `code-review`), against `origin/<base>` with issue #<n> as the spec, and fix what it finds. A finding about code your diff introduced is part of #<n>, even when the fix changes another file or takes more than the ticket names: fix it before you commit.
 - Commit to the current branch.
-- Settle with `worker_done`. In its summary, list your follow-ups: work in this repo outside the scope of #<n> that you found, such as a bug you saw in passing or a review finding you left for later. Write a `follow-ups:` line with one line under it per follow-up, `- <title>: <what you saw and where>`, or write `follow-ups: none`. Trouble with your own job, such as a tool that failed, is not a follow-up: report it in the summary as usual. Put the block just before the two lines that end the summary: `tdd:` followed by the folder that holds the SKILL.md of the `tdd` you loaded, and `code-review:` followed by that of the `code-review`. Give each folder as your harness reported it when the skill loaded, or else the folder of the SKILL.md you read.
+- Settle with `worker_done`. In its summary, list your follow-ups: work in this repo that was already wrong on `origin/<base>` before your first commit, such as a bug you saw in passing outside #<n>. Write a `follow-ups:` line with one line under it per follow-up, `- <title>: <what you saw and where>`, naming each file involved by its path from the repo root, or write `follow-ups: none`. The coordinator sends back any follow-up that names a file your branch changed, or no file. Trouble with your own job, such as a tool that failed, is not a follow-up: report it in the summary as usual. Put the block just before the two lines that end the summary: `tdd:` followed by the folder that holds the SKILL.md of the `tdd` you loaded, and `code-review:` followed by that of the `code-review`. Give each folder as your harness reported it when the skill loaded, or else the folder of the SKILL.md you read.
 
 If `tdd` or `code-review` is not available to you, stop, and settle with `--outcome failed`, naming the missing skill.
 
@@ -199,7 +221,7 @@ Target: PR #<pr> (branch <branch>, issue #<n>) in this worktree.
 
 Reason: <reason>
 
-Change: fix what the reason describes, run the checks it concerns locally, commit, and push. For a CI failure, find it with `gh pr checks <pr>` and `gh run view <run-id> --log-failed`, and reproduce it with the commands in the repo's CI workflow. Then settle with `worker_done`, and in its summary list your follow-ups: work in this repo outside the scope of issue #<n> that you found or were asked for. Write a `follow-ups:` line with one line under it per follow-up, `- <title>: <what you saw and where>`, or write `follow-ups: none`. Trouble with your own job, such as a tool that failed, is not a follow-up: report it in the summary as usual.
+Change: fix what the reason describes, run the checks it concerns locally, commit, and push. For a CI failure, find it with `gh pr checks <pr>` and `gh run view <run-id> --log-failed`, and reproduce it with the commands in the repo's CI workflow. A problem you find in code this branch introduced is part of issue #<n>: fix it before you push. Then settle with `worker_done`, and in its summary list your follow-ups: work the reason asks for outside the scope of issue #<n>, and work in this repo that was already wrong on `origin/<base>` before the branch's first commit. Write a `follow-ups:` line with one line under it per follow-up, `- <title>: <what you saw and where>`, naming each file involved by its path from the repo root, or write `follow-ups: none`. Trouble with your own job, such as a tool that failed, is not a follow-up: report it in the summary as usual.
 
 Constraints: stay within the scope of issue #<n>. When the reason, from CI or from the user's notes, asks for something outside that scope, don't do it: report it as a follow-up. Change files with your file-editing tool (Edit or Write in Claude Code), never with shell scripts, heredocs or redirections: no one is at your terminal to answer the permission prompt those can raise, so it waits, then refuses.
 
