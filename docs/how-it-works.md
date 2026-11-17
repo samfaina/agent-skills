@@ -57,7 +57,9 @@ Because tickets ship one at a time, each worktree starts from a base that alread
 
 A fresh agent gets the implement spec, in the harness **Workers** names for the implement role. It reads the issue and anything it links, builds test-first with the `tdd` skill, runs the full test suite, reviews its own diff against the issue with `code-review`, fixes what that finds, and commits. It doesn't push. Its report names the folder it loaded each of the two skills from. If it can't load one of them, it fails and names the missing skill.
 
-If the worker has a question, it asks the coordinator. The coordinator answers from the ticket and the repo when it can, and otherwise asks you and passes your answer on.
+If the worker has a question, it asks the coordinator. The coordinator answers from the ticket and the repo when it can, and otherwise asks you and passes your answer on. The PR and fix workers below get the same answers.
+
+The implement and fix workers change files with their file-editing tool, never with shell scripts or heredocs: no one is at a worker's terminal, so a permission prompt that such a command raises waits and then refuses. If a worker still stops at one and escalates that it needs input, the coordinator tells it to redo the change with its file-editing tool and keeps waiting. That doesn't stop the loop or count as a fix round.
 
 The coordinator accepts the work only when the branch has new commits, the working tree is clean, and both skills came from the folders the check before the first ticket found.
 
