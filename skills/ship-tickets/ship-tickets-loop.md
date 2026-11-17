@@ -79,7 +79,7 @@ Some workers write those lines only after they settle. If the summary lacks them
 
 Keep the worker's **follow-ups** with the ticket: each line of the `follow-ups:` block in its summary, or wherever you found the `tdd:` and `code-review:` lines. You offer them after the final report (see "Follow-ups"). A summary without the block has no follow-ups: that never stops the loop or fails the acceptance check.
 
-A follow-up is work that was already wrong on `origin/<base>`. Before you release the worker, check each one against the files the branch changed, `git -C <path> diff --name-only origin/<base>..HEAD`. A follow-up that names a file in that list, or that names no file, may be a problem the diff introduced, so it goes back to the worker. Send all of them in one message, its body passed as you pass a spec:
+A follow-up is work that was already wrong on `origin/<base>`. Before you release the worker, check each one against the files the branch changed, `git -C <path> diff --name-only origin/<base>..HEAD`. A follow-up that names a file in that list, or that names no file, goes back to the worker, which fixes it or shows it was already there. Send all of them in one message, its body passed as you pass a spec:
 
 ```text
 orca orchestration send --to dispatch:<dispatch_id> --subject "Follow-ups in your diff" --body "$body"
@@ -90,9 +90,9 @@ These follow-ups name a file your branch changed, or no file. A problem in code 
 <each follow-up sent back, as its `- <title>: <what you saw and where>` line>
 ```
 
-Orca's guide says a worker that has settled gets a `send` as a follow-up Task and reports on it with a new `worker_done`, as its receipt says. Orca may release a settled worker on its own about two minutes after its `worker_done`, but a `send` reopens a worker it closed. Wait for that `worker_done` as above, and steer a `needs-input` escalation as above. Accept the reply when the first two checks above still pass and its `sent-back:` block has a `fixed` line, or a `pre-existing` line with a reason, for each follow-up you sent. Then drop the fixed ones from the ticket's follow-ups and keep the pre-existing ones as the worker first wrote them, beside the follow-ups that named only files the branch didn't change. For the final report, keep each follow-up you sent back and how it was resolved.
+Orca's guide says a worker that has settled gets a `send` as a new Task and reports on it with a new `worker_done`, as the `send` receipt says. Orca can release a settled worker on its own about two minutes after its `worker_done`, and a `send` reopens a worker it closed. Wait for that `worker_done` as above, and steer a `needs-input` escalation as above. Accept the reply when `git -C <path> log origin/<base>..HEAD --oneline` still lists commits, `git -C <path> status --porcelain` is still empty, and its `sent-back:` block has a `fixed` line, or a `pre-existing` line with a reason, for each follow-up you sent. Then drop the fixed ones from the ticket's follow-ups and keep the pre-existing ones as the worker first wrote them, beside the follow-ups that named only files the branch didn't change. For the final report, keep each follow-up you sent back and how it was resolved.
 
-The loop stops at this step, and the final report lists the follow-ups sent back as unresolved, when:
+The loop stops at this step, with the follow-ups sent back unresolved, when:
 
 - the `send` receipt says the worker refused the message, as a finished worker on a paired Orca server does;
 - the reply settles with `--outcome failed`, or fails its acceptance check;
@@ -100,7 +100,7 @@ The loop stops at this step, and the final report lists the follow-ups sent back
 
 Silence is not one of them: as for any worker, an empty or timed-out wait is a checkpoint, so keep waiting, and never release a worker whose reply hasn't been accepted.
 
-Then `worker-release`, and release the follow-up Task's dispatch as well if the `send` receipt gave it one of its own. There is nothing to acknowledge: the `check` that returned the `worker_done` already marked it handled.
+Then `worker-release`. There is nothing to acknowledge: the `check` that returned the `worker_done` already marked it handled.
 
 ### 4. PR worker
 
@@ -189,7 +189,7 @@ Change: build what the ticket asks. Read it first with `gh issue view <n> --comm
 - Run typechecking and single test files as you go, and the full test suite once at the end.
 - Review your diff: call the Skill tool with `code-review` (in Claude Code, `mattpocock-skills:code-review`, not its built-in `code-review`), against `origin/<base>` with issue #<n> as the spec, and fix what it finds. A finding about code your diff introduced is part of #<n>, even when the fix changes another file or takes more than the ticket names: fix it before you commit.
 - Commit to the current branch.
-- Settle with `worker_done`. In its summary, list your follow-ups: work in this repo that was already wrong on `origin/<base>` before your first commit, such as a bug you saw in passing outside #<n>. Follow-ups are pre-existing work only. Write a `follow-ups:` line with one line under it per follow-up, `- <title>: <what you saw and where>`, naming each file involved by its path from the repo root, or write `follow-ups: none`. The coordinator sends back any follow-up that names a file your branch changed. Trouble with your own job, such as a tool that failed, is not a follow-up: report it in the summary as usual. Put the block just before the two lines that end the summary: `tdd:` followed by the folder that holds the SKILL.md of the `tdd` you loaded, and `code-review:` followed by that of the `code-review`. Give each folder as your harness reported it when the skill loaded, or else the folder of the SKILL.md you read.
+- Settle with `worker_done`. In its summary, list your follow-ups: work in this repo that was already wrong on `origin/<base>` before your first commit, such as a bug you saw in passing outside #<n>. Write a `follow-ups:` line with one line under it per follow-up, `- <title>: <what you saw and where>`, naming each file involved by its path from the repo root, or write `follow-ups: none`. The coordinator sends back any follow-up that names a file your branch changed, or no file. Trouble with your own job, such as a tool that failed, is not a follow-up: report it in the summary as usual. Put the block just before the two lines that end the summary: `tdd:` followed by the folder that holds the SKILL.md of the `tdd` you loaded, and `code-review:` followed by that of the `code-review`. Give each folder as your harness reported it when the skill loaded, or else the folder of the SKILL.md you read.
 
 If `tdd` or `code-review` is not available to you, stop, and settle with `--outcome failed`, naming the missing skill.
 
