@@ -64,7 +64,7 @@ Answer each worker `question` with `reply`. Answer from the ticket and the repo 
 An `escalation` with `stopReason: needs-input` usually means the worker hit a permission prompt that no one was at its terminal to answer, such as the one a file edit made through a shell heredoc raises. Steer it, then keep waiting:
 
 ```text
-orca orchestration send --to dispatch:<dispatch_id> --subject "Use your file-editing tool" --body "No one can answer a permission prompt in your terminal. Redo the change with your file-editing tool (Edit or Write in Claude Code) instead of retrying the shell command, then carry on with your task."
+orca orchestration send --to dispatch:<dispatch_id> --subject "Use your file-editing tool" --body "No one can answer a permission prompt in your terminal. If the command that raised it changed a file, redo the change with your file-editing tool (Edit or Write in Claude Code) instead of retrying the shell command. Then carry on with your task."
 ```
 
 The worker reads the steer once its prompt closes. Sending it doesn't stop the loop, doesn't count as a fix round, and doesn't change the step's acceptance check. This step covers `needs-input` only: handle an escalation with any other `stopReason` as the guide says.
