@@ -6,7 +6,8 @@
 #
 # Tickets are the issue numbers the run shipped, in the order they must merge
 # (default: 1 3 2 4). --stopped checks a run that had to stop before its first
-# ticket: no worktree and no PR. Options:
+# ticket: no worktree and no PR. A loop run must also open no issue besides
+# the sandbox's tickets. Options:
 #
 #   --since <time>      the run started at this UTC time (default: the last
 #                       force-push to main, which is the last reset)
@@ -214,6 +215,14 @@ for pr in "${prs[@]}"; do
 done
 [ -n "$red_then_green" ] || fail "no PR's changelog check failed and then passed: the fix worker for CI never ran"
 ok "PR #$red_then_green: changelog check failed, then passed"
+
+# The coordinator opens a follow-up only on the user's answer, and an unattended
+# run has no one to give it.
+sandbox_tickets=$(ls "$here"/tickets/*.md | xargs -n 1 basename | sed 's/\.md$//')
+opened=$(gh issue list --repo "$repo" --state all --limit 100 --json number,createdAt \
+  | issues_opened "$since" $sandbox_tickets)
+[ -z "$opened" ] || fail "the run opened issue(s) $(echo "$opened" | sed 's/^/#/' | tr '\n' ' ')with no one to approve them"
+ok "no issue opened"
 
 check_orca
 check_log

@@ -43,6 +43,13 @@ gives_command() {
     END { exit !found }' "$1"
 }
 
+# Prints the number of each issue created at or after <since>, one per line,
+# from the JSON of `gh issue list --json number,createdAt` on stdin, leaving
+# out the issue numbers after <since>.
+issues_opened() {
+  js 'd.filter((i) => i.createdAt >= a[1] && !a.slice(2).includes(String(i.number))).map((i) => i.number)' "$@"
+}
+
 # Prints the Orca repo entry of <owner/repo> as JSON, or `null` when the
 # sandbox isn't added to Orca.
 orca_repo() {

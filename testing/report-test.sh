@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Tests how run.sh and verify.sh read the coordinator's output: lib.sh's
-# transcript, on a Claude Code and an OpenCode event log, and unlinked_prs.
+# transcript, on a Claude Code and an OpenCode event log, unlinked_prs,
+# gives_command and issues_opened.
 # No network, no Orca, no coordinator.
 #
 #   report-test.sh
@@ -107,6 +108,22 @@ check "gives_command: a dot in the branch matches only a dot" no \
 echo 'Run git push origin --delete 1-add-slugify.' > "$work/sentence.txt"
 check "gives_command: a sentence's period isn't part of the branch" yes \
   "$(gives "$work/sentence.txt" 'git push origin --delete 1-add-slugify')"
+
+# A loop run opens no issue: the coordinator only offers follow-ups, and an
+# unattended run has no one to accept them. The sandbox's tickets don't count,
+# though the first reset after `create` opens them after the run's start.
+cat > "$work/issues.json" <<'EOF'
+[
+  {"number": 6, "createdAt": "2026-11-17T10:05:00Z"},
+  {"number": 5, "createdAt": "2026-11-16T09:00:00Z"},
+  {"number": 3, "createdAt": "2026-11-17T10:01:00Z"},
+  {"number": 1, "createdAt": "2026-11-17T10:00:00Z"}
+]
+EOF
+check "issues_opened: the issues created since the run started, tickets aside" '6' \
+  "$(issues_opened 2026-11-17T10:00:00Z 1 2 3 4 < "$work/issues.json")"
+check "issues_opened: nothing when only the tickets are new" '' \
+  "$(issues_opened 2026-11-17T10:10:00Z 1 2 3 4 < "$work/issues.json")"
 
 [ "$failures" = 0 ] || { echo "$failures failed" >&2; exit 1; }
 echo "PASS"
