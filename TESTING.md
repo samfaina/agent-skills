@@ -16,7 +16,7 @@ For each release, open an issue titled `Release test: <version>`, paste this che
 
 Run the scripts in bash (Git Bash on Windows), from this repo, with `gh` logged in. Below, `<sandbox>` is the repo you create, such as `<you>/ship-tickets-sandbox`.
 
-**Create** the sandbox at the start of each release test. The repo must not exist yet: the script creates it, pushes the fixture as `main`, tags it `baseline`, allows only squash merges, and opens tickets #1 to #4 labelled `ready-for-agent`.
+**Create** the sandbox at the start of each release test. The repo must not exist yet: the script creates it, pushes the fixture as `main`, tags it `baseline`, allows only squash merges, creates the `needs-triage` label the coordinator gives the follow-ups it opens, and opens tickets #1 to #4 labelled `ready-for-agent`.
 
 ```bash
 bash testing/sandbox.sh create <sandbox>
@@ -123,6 +123,7 @@ For a loop run, `verify.sh` checks that:
 - each PR's title is the issue title, its body has Summary and Testing and ends with `Closes #<n>`, and its branch starts with `<n>-`;
 - each ticket is closed and its remote branch deleted, or, in `auto-mode` only, the harness refused the deletion and the last message gives `git push origin --delete <branch>` and names `setup-ship-tickets`;
 - one PR's `changelog` check failed and then passed, so a fix worker ran;
+- the run opened no issue besides the sandbox's tickets: the coordinator opens a follow-up only on your answer, and an unattended run has no one to give it;
 - no Orca worktree is left for the sandbox, and the run left no reclaimable worker;
 - the coordinator's last message links each merged PR as `/pull/<n>`, in any language; a link in an earlier message doesn't count.
 
@@ -132,7 +133,7 @@ A run that has to stop before its first ticket passes when no PR and no worktree
 
 You can also run `verify.sh` on its own after a run, with the tickets in the order they must merge: `bash testing/verify.sh <sandbox> 1 3 2 4`. It checks the last message only with `--report <run>-<time>.report.txt`.
 
-`bash testing/report-test.sh` tests how `run.sh` and `verify.sh` read the coordinator's output, with no network: the said, ran and report files from a Claude Code and an OpenCode event log, and the check that the report links each PR.
+`bash testing/report-test.sh` tests how `run.sh` and `verify.sh` read the coordinator's output, with no network: the said, ran and report files from a Claude Code and an OpenCode event log, the check that the report links each PR, the check that it gives a refused cleanup's command, and the check that the run opened no issue.
 
 ## 1. Setup
 
@@ -248,9 +249,11 @@ Reset with ``--workers '`opencode` (all roles)'``, and run `/ship-tickets` in Cl
 - [ ] Each PR's title is the issue title, and its body has Summary, Testing and `Closes #<n>`.
 - [ ] The coordinator waits for the checks to appear, then runs the watch in the background until they finish.
 - [ ] Before each merge, `AskUserQuestion` shows the PR URL, title and size and offers Merge, Request changes and Stop.
-- [ ] On one ticket, pick **Request changes** with a note (such as "add a test for an empty string"). A fix worker (task title `#<n> fix`) applies it, CI runs again, and the coordinator asks again.
+- [ ] On one ticket, pick **Request changes** with a note that also asks for something clearly out of its scope (such as "add a test for an empty string, and add a `reverse(text)` function to `src/index.js`"). A fix worker (task title `#<n> fix`) applies the part in scope, adds no `reverse`, CI runs again, and the coordinator asks again.
 - [ ] After each merge: the PR is squash-merged, the issue is closed, the remote branch is deleted, the worktree is removed, and `worker-list --terminal-state reclaimable` returns no rows.
 - [ ] On the last ticket, pick **Stop**. The PR stays open, and the final report lists each ticket as merged with its PR link, and the last one as stopped.
+- [ ] After the final report, the coordinator shows the follow-ups as a numbered list, the out-of-scope request among them with the ticket it came from, and asks with `AskUserQuestion` offering **All**, **None** and **Choose**. It opens no issue before you answer.
+- [ ] Pick **Choose** and give the out-of-scope request's number. The coordinator links the issue it opened, which has the `needs-triage` label, not `ready-for-agent`, and whose body ends with `Found while shipping #<n> (PR #<pr>)`.
 
 ## When you're done
 

@@ -69,6 +69,8 @@ Accept `--outcome succeeded` when:
 
 Some workers write those lines only after they settle. If the summary lacks them, look further before you release the worker: give it up to two minutes to go idle, then read its output with `orca orchestration worker-read --dispatch <dispatch_id> --limit 3000 --json` and take the lines from a later `worker_done` or from its terminal. Stop the loop only if they are in neither place, and say in the final report which tickets' lines came from the worker's output.
 
+Keep the worker's **follow-ups** with the ticket: each line of the `follow-ups:` block in its summary, or wherever you found the `tdd:` and `code-review:` lines. You offer them after the final report (see "Follow-ups"). A summary without the block has no follow-ups: that never stops the loop or fails the acceptance check.
+
 Then `worker-release`. There is nothing to acknowledge: the `check` that returned the `worker_done` already marked it handled.
 
 ### 4. PR worker
@@ -87,7 +89,7 @@ If `shipping.md` sets **CI** to `none`, go to step 6. A file without the field m
 2. **Checks settled.** Run `gh pr checks <pr> --watch --fail-fast --interval 30`. This can run for many minutes. If your harness notifies you when a background command exits, run it in the background: in Claude Code, with the Bash tool's `run_in_background`, then wait for the notification that it exited. Otherwise run it in the foreground, and if it times out, run it again until it exits with a result; it is safe to rerun.
 
 - **Exit 0 (green)** → step 6.
-- **Non-zero (red)** → start a **fix worker** in the same worktree: `worker-start --worktree issue:<n> --agent <fix agent> --task-title "#<n> fix"` with the fix spec and the CI failure as its reason. Accept it when it reports the fix pushed, then run step 5 again. A ticket gets at most **2** fix workers for CI. After the third red run, stop the loop.
+- **Non-zero (red)** → start a **fix worker** in the same worktree: `worker-start --worktree issue:<n> --agent <fix agent> --task-title "#<n> fix"` with the fix spec and the CI failure as its reason. Accept it when it reports the fix pushed, keep its follow-ups with the ticket as in step 3, then run step 5 again. A ticket gets at most **2** fix workers for CI. After the third red run, stop the loop.
 
 ### 6. Merge
 
@@ -128,6 +130,19 @@ Per ticket in the set: **merged** (PR link, whether the user approved a merge th
 
 If the harness refused a cleanup, also say that turning on GitHub's "Automatically delete head branches" setting and running `setup-ship-tickets` again removes the step: GitHub then deletes the branch on merge, and **After merge** becomes "nothing".
 
+Trouble with the loop itself, such as a worker that failed or a tool the harness refused, goes in this report, never in the follow-ups.
+
+## Follow-ups
+
+After the final report, whether the loop finished or stopped, offer the follow-ups you kept, once for the whole run. With none, skip this section.
+
+1. **Gather.** Merge follow-ups from this run that describe the same work into one, keeping every ticket it came from. Search the open issues for each one, such as `gh issue list --state open --search "<key words of its title>" --json number,title --limit 5`, and mark each issue that looks like the same work as "possible duplicate of #x". Drop none: the user decides.
+2. **Offer.** Show a numbered list, one entry per follow-up: its title, what the worker saw and where, the ticket it came from, and its possible duplicates. Ask which to open: all, none, or the numbers. If your harness has a structured question tool, use it with the options **All**, **None** and **Choose**, and on **Choose** ask for the numbers. Open nothing until the user answers, even with Merge approval `auto`: that covers merges only.
+
+   If no one can answer, as in a non-interactive run where a question gets no reply, don't ask: end your last message, the one with the final report, with the numbered list, and open none.
+3. **Open.** For each follow-up the user picked, write the issue body with your file-writing tool, outside the repo: what the worker saw, the files or lines it named, and as its last line `Found while shipping #<n> (PR #<pr>)`, or `Found while shipping #<n>` when that ticket stopped before its PR. A follow-up merged from several tickets gets one such line per ticket. Open it with `gh issue create --title "<title>" --body-file <file>`, adding `--label needs-triage` when `gh label list --json name --jq '.[].name'` lists `needs-triage`, and no label otherwise. Never label it `ready-for-agent`: no one has triaged it.
+4. **Link.** Give the user the link of each issue you opened.
+
 ## Specs
 
 Each spec meets Orca's task-spec contract: Target, Change, Constraints, Ownership, Observable acceptance. Fill the `<placeholders>` and send the rest as written.
@@ -144,7 +159,7 @@ Change: build what the ticket asks. Read it first with `gh issue view <n> --comm
 - Run typechecking and single test files as you go, and the full test suite once at the end.
 - Review your diff: call the Skill tool with `code-review` (in Claude Code, `mattpocock-skills:code-review`, not its built-in `code-review`), against `origin/<base>` with issue #<n> as the spec, and fix what it finds.
 - Commit to the current branch.
-- Settle with `worker_done`. End its summary with two lines: `tdd:` followed by the folder that holds the SKILL.md of the `tdd` you loaded, and `code-review:` followed by that of the `code-review`. Give each folder as your harness reported it when the skill loaded, or else the folder of the SKILL.md you read.
+- Settle with `worker_done`. In its summary, list your follow-ups: work in this repo outside the scope of #<n> that you found, such as a bug you saw in passing or a review finding you left for later. Write a `follow-ups:` line with one line under it per follow-up, `- <title>: <what you saw and where>`, or write `follow-ups: none`. Trouble with your own job, such as a tool that failed, is not a follow-up: report it in the summary as usual. Put the block just before the two lines that end the summary: `tdd:` followed by the folder that holds the SKILL.md of the `tdd` you loaded, and `code-review:` followed by that of the `code-review`. Give each folder as your harness reported it when the skill loaded, or else the folder of the SKILL.md you read.
 
 If `tdd` or `code-review` is not available to you, stop, and settle with `--outcome failed`, naming the missing skill.
 
@@ -176,9 +191,9 @@ Target: PR #<pr> (branch <branch>, issue #<n>) in this worktree.
 
 Reason: <reason>
 
-Change: fix what the reason describes, run the checks it concerns locally, commit, and push. For a CI failure, find it with `gh pr checks <pr>` and `gh run view <run-id> --log-failed`, and reproduce it with the commands in the repo's CI workflow.
+Change: fix what the reason describes, run the checks it concerns locally, commit, and push. For a CI failure, find it with `gh pr checks <pr>` and `gh run view <run-id> --log-failed`, and reproduce it with the commands in the repo's CI workflow. Then settle with `worker_done`, and in its summary list your follow-ups: work in this repo outside the scope of issue #<n> that you found or were asked for. Write a `follow-ups:` line with one line under it per follow-up, `- <title>: <what you saw and where>`, or write `follow-ups: none`. Trouble with your own job, such as a tool that failed, is not a follow-up: report it in the summary as usual.
 
-Constraints: stay within the scope of issue #<n>.
+Constraints: stay within the scope of issue #<n>. When the reason, from CI or from the user's notes, asks for something outside that scope, don't do it: report it as a follow-up.
 
 Ownership: this branch.
 

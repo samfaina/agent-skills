@@ -138,6 +138,11 @@ create() {
     -F delete_branch_on_merge=false >/dev/null
   echo "  squash merges only, branches kept after merge"
 
+  # The label the coordinator gives each follow-up it opens (TESTING.md 3.1).
+  gh label create needs-triage --repo "$repo" --force --color d4c5f9 \
+    --description "Maintainer needs to evaluate this issue" >/dev/null
+  echo "  needs-triage label created"
+
   reset
 }
 

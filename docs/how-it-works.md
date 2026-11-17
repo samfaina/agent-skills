@@ -15,7 +15,8 @@ nav_order: 3
 flowchart TD
     %% #46; is a dot. Mermaid reads a bare "1. " as a Markdown list and shows "Unsupported markdown: list".
     start([Start]) --> pick[1#46; Pick the next ready ticket]
-    pick -->|none left| report([Final report])
+    pick -->|none left| report[Final report]
+    report --> followups([Offer the follow-ups])
     pick --> wt[2#46; Create the ticket's worktree]
     wt --> impl[3#46; Implement worker]
     impl --> pr[4#46; PR worker]
@@ -95,6 +96,12 @@ After the merge, the coordinator checks the issue closed, and closes it with a c
 The coordinator runs the after-merge step from `shipping.md` (deleting the remote branch, for example), removes the worktree, and checks that no worker from the run is left behind. Then it picks the next ticket.
 
 Each of these commands runs on its own, so the harness's permission check sees exactly what runs. If the harness refuses the after-merge step or the worktree removal, as Claude Code's auto mode can, the coordinator leaves it undone and carries on: the ticket is still shipped, and the final report gives you the command to run. If the branch deletion fails because GitHub already deleted the branch, the step counts as done. Any other error from the after-merge step goes in the final report with its output. To drop the step altogether, turn on GitHub's "Automatically delete head branches" setting. `/setup-ship-tickets` offers to on a first setup, and on a later one with Merge approval `auto`.
+
+## Follow-ups
+
+Workers often find work outside their ticket: a bug they saw in passing, or a review finding they left for later. The implement and fix workers list it in their reports as **follow-ups**, and a fix worker asked for something outside the ticket, by CI or by your requested changes, reports it as a follow-up instead of doing it. Trouble with the loop itself isn't a follow-up: it goes in the final report.
+
+After the final report, whether the run finished or stopped, the coordinator merges the follow-ups that are the same, marks the ones that may duplicate an open issue, and shows them as a numbered list. You pick which to open: all, none, or some by number. It opens nothing without your answer, even with Merge approval `auto`, and in a run with no one to answer it only lists them. Each issue it opens says what the worker saw and where, ends with `Found while shipping #<n> (PR #<pr>)`, and gets the `needs-triage` label if your repo has it, never `ready-for-agent`. It gives you the links.
 
 ## Workers and specs
 

@@ -24,6 +24,10 @@ _Avoid_: reviewed mode, auto-merge mode
 A PR whose head branch lives in another repo, such as a fork, or that belongs to a repo other than the one being shipped from. A PR from a collaborator's fork counts.
 _Avoid_: fork PR, foreign PR, third-party PR
 
+**Follow-up**:
+Work in the repo being shipped that a worker finds outside its ticket's scope, such as a bug it saw in passing or a review finding it left for later. The coordinator offers it to the user as a new issue; trouble with the loop itself is not a follow-up.
+_Avoid_: pending ticket, leftover, TODO
+
 **Worker role**:
 The job a worker is started for: implement, PR or fix. A repo can run each role in a different harness.
 _Avoid_: worker type, step
