@@ -255,7 +255,7 @@ Reset with ``--workers '`opencode` (all roles)'``, and run `/ship-tickets` in Cl
 - [ ] The fix worker's out-of-scope request isn't sent back to it, even though it names `src/index.js`, a file every branch but #2's changes: the coordinator checks only the implement workers' follow-ups.
 - [ ] If an implement worker reports a follow-up that names a file its branch changed, or no file, the coordinator sends it back with `orca orchestration send` before releasing the worker, waits for its new `worker_done`, and the final report says whether the follow-up was fixed or kept as pre-existing, with the worker's reason. Write in the case's result whether a follow-up was sent back.
 - [ ] After the final report, the coordinator shows the follow-ups as a numbered list, the out-of-scope request among them with the ticket it came from, and asks with `AskUserQuestion` offering **All**, **None** and **Choose**. It opens no issue before you answer.
-- [ ] Pick **Choose** and give the out-of-scope request's number. The coordinator links the issue it opened, which has the `needs-triage` label, not `ready-for-agent`, and whose body ends with `Found while shipping #<n> (PR #<pr>)`.
+- [ ] Pick **Choose** and give the out-of-scope request's number. The coordinator links the issue it opened, which has the `needs-triage` label, not `ready-for-agent`, and whose body has a `## What happened` and a `## Where` section, no section that sets the fix or its scope, and ends with `Found while shipping #<n> (PR #<pr>)`.
 
 ## When you're done
 
