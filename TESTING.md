@@ -255,11 +255,11 @@ Reset with ``--workers '`opencode` (all roles)'``, and run `/ship-tickets` in Cl
 - [ ] The fix worker's out-of-scope requests aren't sent back to it, even though they name `src/index.js`, a file every branch but #2's changes: the coordinator checks only the implement workers' follow-ups.
 - [ ] If an implement worker reports a follow-up that names a file its branch changed, or no file, the coordinator sends it back with `orca orchestration send` before releasing the worker, waits for its new `worker_done`, and the final report says whether the follow-up was fixed or kept as pre-existing, with the worker's reason. Write in the case's result whether a follow-up was sent back.
 - [ ] After the final report, the coordinator shows the follow-ups as a numbered list, the two out-of-scope requests among them as two entries with the ticket they came from, and asks with `AskUserQuestion` offering **All**, **None** and **Choose**. It opens no issue and posts no comment before you answer.
-- [ ] Each out-of-scope entry marks as "same code as" #1, #3 and #4, whose bodies name `src/index.js`, each with its state, and lists none of them as a possible duplicate too. It says this code has a chain of issues and suggests one issue about its contract.
+- [ ] Each out-of-scope entry shows #1, #3 and #4, whose bodies name `src/index.js`, each once and with its state: as "same code as", or as a possible duplicate if the coordinator judged it one. It says this code has a chain of issues and suggests one issue about its contract.
 - [ ] Pick **Choose** and give both entries' numbers. For each, the coordinator asks whether to open it or fold it into an open same-code match, #4 among them, since **Stop** left it open. Open `reverse`, and fold `capitalize` into #4.
 - [ ] The coordinator links the issue it opened for `reverse`, which has the `needs-triage` label, not `ready-for-agent`, and whose body has a `## What happened` and a `## Where` section, no section that sets the fix or its scope, and ends with `Found while shipping #<n> (PR #<pr>)`.
 - [ ] It links the comment it posted on #4 for `capitalize`, written the same way, and opened no issue for it. The body and labels of #4 are as they were (`gh issue view 4 --json body,labels`).
-- [ ] The report's last lines say, for the ticket the requests came from, `reverse` opened as #x and `capitalize` folded into #4.
+- [ ] Its message with the links says, for the ticket the requests came from, `reverse` opened as #x and `capitalize` folded into #4.
 
 ## When you're done
 

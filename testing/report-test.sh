@@ -136,11 +136,12 @@ cat > "$work/comments.json" <<'EOF'
   ],
   [
     {"issue_url": "https://api.github.com/repos/o/r/issues/2", "html_url": "https://github.com/o/r/issues/2#issuecomment-3", "created_at": "2026-11-16T09:00:00Z", "body": "Old."},
-    {"issue_url": "https://api.github.com/repos/o/r/issues/1", "html_url": "https://github.com/o/r/issues/1#issuecomment-4", "created_at": "2026-11-17T10:07:00Z", "body": "## Where"}
+    {"issue_url": "https://api.github.com/repos/o/r/issues/1", "html_url": "https://github.com/o/r/issues/1#issuecomment-4", "created_at": "2026-11-17T10:07:00Z", "body": "## Where"},
+    {"issue_url": "https://api.github.com/repos/o/r/issues/5", "html_url": "https://github.com/o/r/issues/5#issuecomment-7", "created_at": "2026-11-17T10:08:00Z", "body": "Found while shipping #1"}
   ]
 ]
 EOF
-check "comments_posted: the issues commented on since the run started, PRs aside" "$(printf '5\n1')" \
+check "comments_posted: each issue commented on since the run started, once, PRs aside" "$(printf '5\n1')" \
   "$(comments_posted 2026-11-17T10:00:00Z < "$work/comments.json")"
 check "comments_posted: nothing when every comment is older" '' \
   "$(comments_posted 2026-11-17T10:10:00Z < "$work/comments.json")"

@@ -50,13 +50,13 @@ issues_opened() {
   js 'd.filter((i) => i.createdAt >= a[1] && !a.slice(2).includes(String(i.number))).map((i) => i.number)' "$@"
 }
 
-# Prints the number of each issue commented on at or after <since>, once per
-# comment, from the JSON of `gh api repos/<repo>/issues/comments --paginate
+# Prints the number of each issue commented on at or after <since>, once,
+# from the JSON of `gh api repos/<repo>/issues/comments --paginate
 # --slurp` on stdin: an array of pages, or one array. Comments on PRs, which
 # the same API lists, don't count, nor does the loop's `Shipped in #<pr>` on a
 # ticket its merge left open.
 comments_posted() {
-  js 'd.flat().filter((c) => c.created_at >= a[1] && c.html_url.includes("/issues/") && !/^Shipped in #\d+$/.test(c.body.trim())).map((c) => c.issue_url.split("/").pop())' "$@"
+  js 'd.flat().filter((c) => c.created_at >= a[1] && c.html_url.includes("/issues/") && !/^Shipped in #\d+$/.test(c.body.trim())).map((c) => c.issue_url.split("/").pop()).filter((n, i, all) => all.indexOf(n) === i)' "$@"
 }
 
 # Prints the Orca repo entry of <owner/repo> as JSON, or `null` when the
