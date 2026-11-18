@@ -123,7 +123,7 @@ For a loop run, `verify.sh` checks that:
 - each PR's title is the issue title, its body has Summary and Testing and ends with `Closes #<n>`, and its branch starts with `<n>-`;
 - each ticket is closed and its remote branch deleted, or, in `auto-mode` only, the harness refused the deletion and the last message gives `git push origin --delete <branch>` and names `setup-ship-tickets`;
 - one PR's `changelog` check failed and then passed, so a fix worker ran;
-- the run opened no issue besides the sandbox's tickets: the coordinator opens a follow-up only on your answer, and an unattended run has no one to give it;
+- the run opened no issue besides the sandbox's tickets, and posted no comment on an issue but the loop's `Shipped in #<pr>`: the coordinator opens or folds a follow-up only on your answer, and an unattended run has no one to give it;
 - no Orca worktree is left for the sandbox, and the run left no reclaimable worker;
 - the coordinator's last message links each merged PR as `/pull/<n>`, in any language; a link in an earlier message doesn't count.
 
@@ -133,7 +133,7 @@ A run that has to stop before its first ticket passes when no PR and no worktree
 
 You can also run `verify.sh` on its own after a run, with the tickets in the order they must merge: `bash testing/verify.sh <sandbox> 1 3 2 4`. It checks the last message only with `--report <run>-<time>.report.txt`.
 
-`bash testing/report-test.sh` tests how `run.sh` and `verify.sh` read the coordinator's output, with no network: the said, ran and report files from a Claude Code and an OpenCode event log, the check that the report links each PR, the check that it gives a refused cleanup's command, and the check that the run opened no issue.
+`bash testing/report-test.sh` tests how `run.sh` and `verify.sh` read the coordinator's output, with no network: the said, ran and report files from a Claude Code and an OpenCode event log, the check that the report links each PR, the check that it gives a refused cleanup's command, and the checks that the run opened no issue and posted no comment on one.
 
 ## 1. Setup
 
@@ -249,13 +249,17 @@ Reset with ``--workers '`opencode` (all roles)'``, and run `/ship-tickets` in Cl
 - [ ] Each PR's title is the issue title, and its body has Summary, Testing and `Closes #<n>`.
 - [ ] The coordinator waits for the checks to appear, then runs the watch in the background until they finish.
 - [ ] Before each merge, `AskUserQuestion` shows the PR URL, title and size and offers Merge, Request changes and Stop.
-- [ ] On one ticket, pick **Request changes** with a note that also asks for something clearly out of its scope (such as "add a test for an empty string, and add a `reverse(text)` function to `src/index.js`"). A fix worker (task title `#<n> fix`) applies the part in scope, adds no `reverse`, CI runs again, and the coordinator asks again.
+- [ ] On one ticket, pick **Request changes** with a note that also asks for two things clearly out of its scope (such as "add a test for an empty string, add a `reverse(text)` function to `src/index.js`, and add a `capitalize(text)` function to `src/index.js`"). A fix worker (task title `#<n> fix`) applies the part in scope, adds no `reverse` and no `capitalize`, CI runs again, and the coordinator asks again.
 - [ ] After each merge: the PR is squash-merged, the issue is closed, the remote branch is deleted, the worktree is removed, and `worker-list --terminal-state reclaimable` returns no rows.
 - [ ] On the last ticket, pick **Stop**. The PR stays open, and the final report lists each ticket as merged with its PR link, and the last one as stopped.
-- [ ] The fix worker's out-of-scope request isn't sent back to it, even though it names `src/index.js`, a file every branch but #2's changes: the coordinator checks only the implement workers' follow-ups.
+- [ ] The fix worker's out-of-scope requests aren't sent back to it, even though they name `src/index.js`, a file every branch but #2's changes: the coordinator checks only the implement workers' follow-ups.
 - [ ] If an implement worker reports a follow-up that names a file its branch changed, or no file, the coordinator sends it back with `orca orchestration send` before releasing the worker, waits for its new `worker_done`, and the final report says whether the follow-up was fixed or kept as pre-existing, with the worker's reason. Write in the case's result whether a follow-up was sent back.
-- [ ] After the final report, the coordinator shows the follow-ups as a numbered list, the out-of-scope request among them with the ticket it came from, and asks with `AskUserQuestion` offering **All**, **None** and **Choose**. It opens no issue before you answer.
-- [ ] Pick **Choose** and give the out-of-scope request's number. The coordinator links the issue it opened, which has the `needs-triage` label, not `ready-for-agent`, and whose body has a `## What happened` and a `## Where` section, no section that sets the fix or its scope, and ends with `Found while shipping #<n> (PR #<pr>)`.
+- [ ] After the final report, the coordinator shows the follow-ups as a numbered list, the two out-of-scope requests among them as two entries with the ticket they came from, and asks with `AskUserQuestion` offering **All**, **None** and **Choose**. It opens no issue and posts no comment before you answer.
+- [ ] Each out-of-scope entry shows #1, #3 and #4, whose bodies name `src/index.js`, each once and with its state: as "same code as", or as a possible duplicate if the coordinator judged it one. It says this code has a chain of issues and suggests one issue about its contract.
+- [ ] Pick **Choose** and give both entries' numbers. For each, the coordinator asks whether to open it or fold it into an open same-code match, #4 among them, since **Stop** left it open. Open `reverse`, and fold `capitalize` into #4.
+- [ ] The coordinator links the issue it opened for `reverse`, which has the `needs-triage` label, not `ready-for-agent`, and whose body has a `## What happened` and a `## Where` section, no section that sets the fix or its scope, and ends with `Found while shipping #<n> (PR #<pr>)`.
+- [ ] It links the comment it posted on #4 for `capitalize`, written the same way, and opened no issue for it. The body and labels of #4 are as they were (`gh issue view 4 --json body,labels`).
+- [ ] Its message with the links says, for the ticket the requests came from, `reverse` opened as #x and `capitalize` folded into #4.
 
 ## When you're done
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Tests how run.sh and verify.sh read the coordinator's output: lib.sh's
 # transcript, on a Claude Code and an OpenCode event log, unlinked_prs,
-# gives_command and issues_opened.
+# gives_command, issues_opened and comments_posted.
 # No network, no Orca, no coordinator.
 #
 #   report-test.sh
@@ -124,6 +124,36 @@ check "issues_opened: the issues created since the run started, tickets aside" '
   "$(issues_opened 2026-11-17T10:00:00Z 1 2 3 4 < "$work/issues.json")"
 check "issues_opened: nothing when only the tickets are new" '' \
   "$(issues_opened 2026-11-17T10:10:00Z 1 2 3 4 < "$work/issues.json")"
+
+# Nor does it comment on an issue: folding a follow-up into one needs an
+# answer too. The issue comments API lists a PR's comments as well, under
+# /pull/, and pages come as an array of arrays with --slurp.
+cat > "$work/comments.json" <<'EOF'
+[
+  [
+    {"issue_url": "https://api.github.com/repos/o/r/issues/5", "html_url": "https://github.com/o/r/issues/5#issuecomment-1", "created_at": "2026-11-17T10:05:00Z", "body": "## What happened"},
+    {"issue_url": "https://api.github.com/repos/o/r/issues/7", "html_url": "https://github.com/o/r/pull/7#issuecomment-2", "created_at": "2026-11-17T10:06:00Z", "body": "Fixed."}
+  ],
+  [
+    {"issue_url": "https://api.github.com/repos/o/r/issues/2", "html_url": "https://github.com/o/r/issues/2#issuecomment-3", "created_at": "2026-11-16T09:00:00Z", "body": "Old."},
+    {"issue_url": "https://api.github.com/repos/o/r/issues/1", "html_url": "https://github.com/o/r/issues/1#issuecomment-4", "created_at": "2026-11-17T10:07:00Z", "body": "## Where"},
+    {"issue_url": "https://api.github.com/repos/o/r/issues/5", "html_url": "https://github.com/o/r/issues/5#issuecomment-7", "created_at": "2026-11-17T10:08:00Z", "body": "Found while shipping #1"}
+  ]
+]
+EOF
+check "comments_posted: each issue commented on since the run started, once, PRs aside" "$(printf '5\n1')" \
+  "$(comments_posted 2026-11-17T10:00:00Z < "$work/comments.json")"
+check "comments_posted: nothing when every comment is older" '' \
+  "$(comments_posted 2026-11-17T10:10:00Z < "$work/comments.json")"
+# The loop closes a ticket its merge left open with "Shipped in #<pr>".
+cat > "$work/shipped.json" <<'EOF'
+[
+  {"issue_url": "https://api.github.com/repos/o/r/issues/3", "html_url": "https://github.com/o/r/issues/3#issuecomment-5", "created_at": "2026-11-17T10:08:00Z", "body": "Shipped in #9"},
+  {"issue_url": "https://api.github.com/repos/o/r/issues/4", "html_url": "https://github.com/o/r/issues/4#issuecomment-6", "created_at": "2026-11-17T10:09:00Z", "body": "Shipped in #9, and folded:\n\n## What happened"}
+]
+EOF
+check "comments_posted: a ticket closed as shipped doesn't count" '4' \
+  "$(comments_posted 2026-11-17T10:00:00Z < "$work/shipped.json")"
 
 [ "$failures" = 0 ] || { echo "$failures failed" >&2; exit 1; }
 echo "PASS"

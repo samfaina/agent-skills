@@ -25,8 +25,16 @@ A PR whose head branch lives in another repo, such as a fork, or that belongs to
 _Avoid_: fork PR, foreign PR, third-party PR
 
 **Follow-up**:
-Work in the repo being shipped that a worker finds already wrong on the base branch before its ticket's first commit, such as a bug it saw in passing, or that a fix worker's reason asks for outside the ticket. A review finding about code the ticket's diff introduced is part of the ticket, not a follow-up. The coordinator offers follow-ups to the user as new issues; trouble with the loop itself is not a follow-up.
+Work in the repo being shipped that a worker finds already wrong on the base branch before its ticket's first commit, such as a bug it saw in passing, or that a fix worker's reason asks for outside the ticket. A review finding about code the ticket's diff introduced is part of the ticket, not a follow-up. The coordinator offers follow-ups to the user, to open as new issues or fold into an open same-code match; trouble with the loop itself is not a follow-up.
 _Avoid_: pending ticket, leftover, TODO
+
+**Same-code match**:
+An issue about the same code as a follow-up, though not necessarily the same work: unlike a possible duplicate, it can be a different symptom of that code. The Gather step of the loop's Follow-ups sets how the coordinator finds them.
+_Avoid_: related issue, overlap
+
+**Fold**:
+Posting a follow-up as one comment on an open same-code match, instead of opening a new issue. The issue's body and labels stay as they were.
+_Avoid_: merge, append, attach
 
 **Worker role**:
 The job a worker is started for: implement, PR or fix. A repo can run each role in a different harness.

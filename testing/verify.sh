@@ -7,7 +7,8 @@
 # Tickets are the issue numbers the run shipped, in the order they must merge
 # (default: 1 3 2 4). --stopped checks a run that had to stop before its first
 # ticket: no worktree and no PR. A loop run must also open no issue besides
-# the sandbox's tickets. Options:
+# the sandbox's tickets, and post no comment on an issue but the loop's
+# `Shipped in #<pr>`. Options:
 #
 #   --since <time>      the run started at this UTC time (default: the last
 #                       force-push to main, which is the last reset)
@@ -223,6 +224,11 @@ opened=$(gh issue list --repo "$repo" --state all --limit 100 --json number,crea
   | issues_opened "$since" $sandbox_tickets)
 [ -z "$opened" ] || fail "the run opened issue(s) $(echo "$opened" | sed 's/^/#/' | tr '\n' ' ')with no one to approve them"
 ok "no issue opened"
+# Nor does it fold a follow-up into an issue, which posts a comment there.
+commented=$(gh api "repos/$repo/issues/comments?since=$since&per_page=100" --paginate --slurp \
+  | comments_posted "$since")
+[ -z "$commented" ] || fail "the run commented on issue(s) $(echo "$commented" | sed 's/^/#/' | tr '\n' ' ')with no one to approve them"
+ok "no comment posted on an issue"
 
 check_orca
 check_log
