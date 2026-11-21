@@ -6,8 +6,8 @@
 # Resets the sandbox, starts the coordinator non-interactively in an Orca
 # terminal in the sandbox's clone, waits for it, and ends with verify.sh's
 # result. Runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills
-# two-tdd blocked setup-noop outside-orca. The coordinator's output goes to
-# testing/logs/.
+# two-tdd old-install old-plugin-dir blocked setup-noop outside-orca. The
+# coordinator's output goes to testing/logs/.
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -15,7 +15,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 
 usage() {
   echo "usage: run.sh <owner/repo> <run> [--coordinator claude|opencode]" >&2
-  echo "runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills two-tdd blocked setup-noop outside-orca" >&2
+  echo "runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills two-tdd old-install old-plugin-dir blocked setup-noop outside-orca" >&2
   exit 1
 }
 
@@ -74,6 +74,35 @@ copy_tdd() {
   said+=("${root//./\\.}[\\/]+skills[\\/]+tdd")
 }
 
+# Writes this checkout's skills as an older release, agent-skills-old 0.0.1,
+# to $work/old-plugin, and expects the coordinator to name both versions.
+old_plugin() {
+  local latest
+  latest=$(latest_release)
+  [ -n "$latest" ] || { echo "Can't read the latest release's version." >&2; exit 1; }
+  old_plugin_folder "$here/.." "$work/old-plugin"
+  said+=("$(version_regex 0.0.1)" "$(version_regex "$latest")")
+  echo "Wrote agent-skills-old 0.0.1 to $work/old-plugin; the latest release is $latest"
+}
+
+# Installs the older release at local scope in the clone until the run ends,
+# and expects the coordinator to give the update command for that install.
+old_install() {
+  old_plugin
+  # Registered first, so a failed install is undone too.
+  cleanups+=("old_plugin_remove $(printf %q "$clone") $(printf %q "$work/old-plugin") && echo $(printf %q "Removed $old_plugin_id")")
+  old_plugin_install "$clone" "$work/old-plugin"
+  said+=("claude plugin update $old_plugin_id --scope local")
+  echo "Installed $old_plugin_id at local scope in $clone"
+}
+
+# Loads the older release with --plugin-dir, for this run's session only. No
+# plugin install manages it, so there is no update command to give.
+old_plugin_dir() {
+  old_plugin
+  plugin_dir=$(native_path "$work/old-plugin")
+}
+
 # What each run resets, starts and checks. `tickets` is the merge order a loop
 # run must reach; `stopped` runs must stop before their first ticket instead.
 # `said` patterns must match what the coordinator wrote, `ran` patterns the
@@ -81,9 +110,10 @@ copy_tdd() {
 # they hold in any language the coordinator writes in. A loop run's report is
 # checked by verify.sh instead: its last message must link each merged PR.
 # `prepare` breaks what the run tests, after the reset.
+# `plugin_dir` is a plugin folder the Claude Code coordinator loads for the run.
 # `claude_permissions` is how a Claude Code coordinator gets past permission
 # checks: skipped for every run but auto-mode, which keeps them on.
-reset_args=() coordinator=claude skill=ship-tickets skill_args=auto prepare=''
+reset_args=() coordinator=claude skill=ship-tickets skill_args=auto prepare='' plugin_dir=''
 claude_permissions=(--dangerously-skip-permissions)
 tickets=(1 3 2 4) stopped=false in_orca=true unset_shell=false
 said=() ran=('run-create') cleanup_refusable=false
@@ -120,6 +150,13 @@ case $run in
     reset_args=(--workers '`opencode` (all roles)') prepare=copy_tdd stopped=true
     said=('\.claude[\/]+skills[\/]+tdd') ran=()
     ;;
+  old-install | old-plugin-dir)
+    # With no one to answer whether to go on with 0.0.1, the loop stops before
+    # its first ticket, even with Merge approval auto.
+    skill=agent-skills-old:ship-tickets stopped=true ran=()
+    prepare=old_install
+    [ "$run" = old-install ] || prepare=old_plugin_dir
+    ;;
   blocked)
     skill_args='auto 2' stopped=true ran=()
     said=('#3([^0-9]|$)')
@@ -140,6 +177,7 @@ if [ -n "$coordinator_override" ]; then
   case $coordinator_override in claude | opencode) ;; *) usage ;; esac
   [ "$run" != 3.4 ] || { echo "Run 3.4 is OpenCode only." >&2; exit 1; }
   [ "$run" != auto-mode ] || { echo "Run auto-mode is Claude Code only." >&2; exit 1; }
+  case $run in old-install | old-plugin-dir) echo "Run $run is Claude Code only." >&2; exit 1 ;; esac
   coordinator=$coordinator_override
 fi
 # The coordinator's shells get MSYS_NO_PATHCONV=1, except in setup runs: those
@@ -173,6 +211,14 @@ for branch in $(git -C "$clone" branch --format='%(refname:short)'); do
 done
 
 [ -z "$prepare" ] || $prepare
+
+# A loop run's report names the version of the loop that ran. Claude Code's
+# copy has a plugin.json to read it from; one from `npx skills add` doesn't.
+loop_version_regex=''
+if ! $stopped && [ "$coordinator" = claude ]; then
+  loop_version_regex=$(cd "$clone" && claude plugin list --json | plugin_version_regex)
+  [ -n "$loop_version_regex" ] || { echo "agent-skills isn't installed and enabled in Claude Code." >&2; exit 1; }
+fi
 
 # Forces one PR red, so a fix worker runs: once the first ticket's PR is open,
 # push a commit that drops its CHANGELOG.md line. The implement worker's code
@@ -219,7 +265,9 @@ if $windows && ! $no_pathconv; then prompt="/$prompt"; fi
 
 case $coordinator in
   claude)
-    command=(claude -p "$prompt" "${claude_permissions[@]}" --output-format stream-json --verbose) ;;
+    command=(claude -p "$prompt" "${claude_permissions[@]}" --output-format stream-json --verbose)
+    [ -z "$plugin_dir" ] || command+=(--plugin-dir "$plugin_dir")
+    ;;
   opencode)
     command=(opencode run --command "$skill" --auto --format json)
     # The arguments are words without spaces, so splitting them is safe.
@@ -285,6 +333,7 @@ for regex in ${ran[@]+"${ran[@]}"}; do verify_args+=(--expect "$regex"); done
 if $stopped; then
   verify_args+=(--stopped)
 else
+  [ -z "$loop_version_regex" ] || verify_args+=(--log "$out.report.txt" --expect "$loop_version_regex")
   verify_args+=(--report "$out.report.txt")
   ! $cleanup_refusable || verify_args+=(--cleanup-refusable)
   verify_args+=("${tickets[@]}")

@@ -22,8 +22,9 @@ Run each check and record pass or fail with the evidence:
 | `orca` resolves on `PATH` and serves Orca's orchestration guide | `command -v orca` in POSIX shells, `(Get-Command orca).Source` in PowerShell; on Windows it must be `orca.exe`, not `orca.cmd`. Then `orca skills get orchestration` prints the guide |
 | This session runs inside an Orca terminal | `ORCA_TERMINAL_HANDLE` is set |
 | The `ready-for-agent` label exists | `ready-for-agent` is an exact line of `gh label list --search ready-for-agent --json name --jq '.[].name'` (the search is fuzzy) |
+| These skills are the latest release | the version check in `skill-version.md`, in the `ship-tickets` skill's folder beside this skill's folder (`../ship-tickets/`). **current** passes, **older** fails with both versions and the update command, and **unknown** passes, recorded with its reason |
 
-A missing label is the one failure you fix here: offer to create it with `gh label create ready-for-agent`. Report the other failures with the fix the user needs; they block the loop, not this setup, so carry on.
+A missing label is the one failure you fix here: offer to create it with `gh label create ready-for-agent`. Report the other failures with the fix the user needs; they block the loop, not this setup, so carry on. An older version doesn't block the loop either, which asks before its first ticket, but a setup older than the latest release may leave out fields the newer loop reads.
 
 Done when every check has a recorded result. Whether workers will load Matt Pocock's `tdd` and `code-review` depends on **Workers**, so step 2 checks it.
 
@@ -162,6 +163,7 @@ Done when either the PR is open and the worktree and the body file are removed, 
 
 ## Report
 
+- The version of the skills that ran, from the version check, or that it is unknown and why.
 - The PR URL. `ship-tickets` can run once it merges. If step 3 was skipped, say instead that `shipping.md` is up to date and `ship-tickets` can run now, or once the preflight failures below are fixed. If the worktree check failed, say so instead: give `<tmp-dir>` and what the check printed, and say that setup wrote nothing and opened no PR.
 - If the PR changes the merge hook or the rule: Claude Code reads `.claude/` from the local checkout, not the remote, so pull the default branch into the checkout the coordinator runs in once the PR merges, then start the coordinator in a new session. Until then, that checkout keeps what it had.
 - What happened to GitHub's "Automatically delete head branches" setting: turned on, already on, left off, or couldn't be changed. When it couldn't, give the error or the refusal, the command `gh repo edit --delete-branch-on-merge`, and the setting under **Settings** → **General** → **Pull Requests**, for the user to change themselves. When an update changed After merge to "nothing" because the setting is on, say so.

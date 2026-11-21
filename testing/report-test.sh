@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Tests how run.sh and verify.sh read the coordinator's output: lib.sh's
 # transcript, on a Claude Code and an OpenCode event log, unlinked_prs,
-# gives_command, issues_opened and comments_posted.
+# gives_command, issues_opened, comments_posted, version_regex and
+# plugin_version_regex.
 # No network, no Orca, no coordinator.
 #
 #   report-test.sh
@@ -154,6 +155,32 @@ cat > "$work/shipped.json" <<'EOF'
 EOF
 check "comments_posted: a ticket closed as shipped doesn't count" '4' \
   "$(comments_posted 2026-11-17T10:00:00Z < "$work/shipped.json")"
+
+# A loop run's report names the version of the loop that ran: the version of
+# each enabled agent-skills install in `claude plugin list --json`.
+cat > "$work/plugins.json" <<'EOF'
+[
+  {"id": "mattpocock-skills@claude-plugins-official", "version": "1.3.1", "scope": "user", "enabled": true},
+  {"id": "agent-skills@samfaina", "version": "0.9.0", "scope": "user", "enabled": true},
+  {"id": "agent-skills@samfaina", "version": "0.6.0", "scope": "local", "enabled": false}
+]
+EOF
+version_regex=$(plugin_version_regex < "$work/plugins.json")
+# Says whether a line matches an extended regex.
+matches() { if printf '%s\n' "$2" | grep -Eq -- "$1"; then echo yes; else echo no; fi; }
+check "plugin_version_regex: the enabled agent-skills version, in a sentence" yes \
+  "$(matches "$version_regex" 'Corrió ship-tickets 0.9.0.')"
+check "plugin_version_regex: not a disabled install's version" no "$(matches "$version_regex" 'ship-tickets 0.6.0')"
+check "plugin_version_regex: not another plugin's version" no "$(matches "$version_regex" 'mattpocock-skills 1.3.1')"
+check "plugin_version_regex: not a longer version" no "$(matches "$version_regex" '10.9.0 and 0.9.01 and 0.9.0.1')"
+sed 's/"enabled": false/"enabled": true/' "$work/plugins.json" > "$work/two.json"
+two=$(plugin_version_regex < "$work/two.json")
+check "plugin_version_regex: either of two enabled installs" "yes yes" \
+  "$(matches "$two" 'ship-tickets 0.6.0') $(matches "$two" '(0.9.0)')"
+check "version_regex: the version, not a longer one" "yes no no" \
+  "$(matches "$(version_regex 0.0.1)" 'ship-tickets 0.0.1, latest 0.9.0') $(matches "$(version_regex 0.0.1)" '10.0.1') $(matches "$(version_regex 0.0.1)" '0.0.10')"
+check "plugin_version_regex: nothing without an enabled install" '' \
+  "$(echo '[{"id": "agent-skills@samfaina", "version": "0.9.0", "enabled": false}]' | plugin_version_regex)"
 
 [ "$failures" = 0 ] || { echo "$failures failed" >&2; exit 1; }
 echo "PASS"

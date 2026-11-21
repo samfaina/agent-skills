@@ -38,6 +38,7 @@ The coordinator:
 - turns your arguments, in your order, or every open `ready-for-agent` issue, lowest number first, into the **ticket set**;
 - settles the **merge approval**: `ask` or `auto` from your arguments, otherwise the **Merge approval** field in `shipping.md`, otherwise `ask`;
 - reads from the **Workers** field which harness each worker role starts in;
+- says which version of the loop runs, and if a newer release exists, shows both versions and the update command and asks whether to go on or stop to update, even with Merge approval `auto` (see [An older version of the loop runs](troubleshooting#an-older-version-of-the-loop-runs)). If it can't read the version, it says so and goes on;
 - checks that the implement worker's harness will load the `tdd` and `code-review` from mattpocock/skills, and stops if it would load another skill with the same name (see [the provenance check](harnesses#the-skill-provenance-check));
 - opens one Orca run for the whole session, which every worker belongs to.
 
