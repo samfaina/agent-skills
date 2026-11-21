@@ -77,6 +77,70 @@ plugin_version_regex() {
   [ -z "$versions" ] || version_regex $versions
 }
 
+# Prints the version in .claude-plugin/plugin.json on main of agent-skills:
+# the latest release, which a plugin update installs.
+latest_release() {
+  gh api -H 'Accept: application/vnd.github.raw+json' \
+    repos/samfaina/agent-skills/contents/.claude-plugin/plugin.json --jq .version
+}
+
+# Prints <path> as the coordinator's harness takes it: a drive-letter path
+# on Windows, where Git Bash's /c/... means nothing to claude.exe.
+native_path() {
+  case $(uname -s) in MINGW* | MSYS* | CYGWIN*) cygpath -m "$1" ;; *) echo "$1" ;; esac
+}
+
+# The older release the old-install runs load: the checkout's skills as the
+# plugin agent-skills-old 0.0.1, under a name of its own so the installed
+# agent-skills keeps its skills, from a marketplace in a local folder.
+old_plugin_id=agent-skills-old@ship-tickets-test
+
+# Writes the older release to the new folder <folder>, which is both the
+# plugin and its marketplace, from the checkout <checkout>.
+old_plugin_folder() {
+  local checkout=$1 folder=$2
+  mkdir -p "$folder/.claude-plugin"
+  cp -R "$checkout/skills" "$folder/"
+  js 'd.name = "agent-skills-old"; d.version = "0.0.1"; JSON.stringify(d, null, 2)' \
+    < "$checkout/.claude-plugin/plugin.json" > "$folder/.claude-plugin/plugin.json"
+  js 'd.name = a[1]; d.plugins[0].name = "agent-skills-old"; JSON.stringify(d, null, 2)' "${old_plugin_id#*@}" \
+    < "$checkout/.claude-plugin/marketplace.json" > "$folder/.claude-plugin/marketplace.json"
+}
+
+# Installs the older release from <folder> at local scope in the clone
+# <clone>, as a user's repo pins an install. Claude Code then loads its skills
+# from <folder>, so keep the folder until old_plugin_remove. The clone's
+# .claude/settings.local.json, which the install writes, is kept beside the
+# folder to put back.
+old_plugin_install() {
+  local clone=$1 folder=$2 settings=$1/.claude/settings.local.json
+  if [ -e "$settings" ]; then cp "$settings" "$folder.settings.local.json"; fi
+  (
+    cd "$clone"
+    claude plugin marketplace add "$(native_path "$folder")" --scope local >/dev/null
+    claude plugin install "$old_plugin_id" --scope local >/dev/null
+  )
+}
+
+# Undoes old_plugin_install with the same <clone> and <folder>: uninstalls
+# the plugin, removes its marketplace and its copy in Claude Code's plugin
+# cache, and puts back the clone's .claude/settings.local.json as it was,
+# or deletes it.
+old_plugin_remove() {
+  local clone=$1 folder=$2 settings=$1/.claude/settings.local.json
+  (
+    cd "$clone"
+    claude plugin uninstall "$old_plugin_id" --scope local >/dev/null 2>&1 || true
+    claude plugin marketplace remove "${old_plugin_id#*@}" >/dev/null 2>&1 || true
+  )
+  rm -rf "$HOME/.claude/plugins/cache/${old_plugin_id#*@}"
+  if [ -e "$folder.settings.local.json" ]; then
+    mv "$folder.settings.local.json" "$settings"
+  else
+    rm -f "$settings"
+  fi
+}
+
 # Prints the Orca repo entry of <owner/repo> as JSON, or `null` when the
 # sandbox isn't added to Orca.
 orca_repo() {

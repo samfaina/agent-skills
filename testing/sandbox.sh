@@ -3,13 +3,16 @@
 #
 #   sandbox.sh create <owner/repo>
 #   sandbox.sh reset <owner/repo> [--workers '<Workers value>'] [--no-shipping-md]
+#   sandbox.sh old-install <owner/repo> [--remove]
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
+. "$here/lib.sh"
 
 usage() {
   echo "usage: sandbox.sh create <owner/repo>" >&2
   echo "       sandbox.sh reset <owner/repo> [--workers '<Workers value>'] [--no-shipping-md]" >&2
+  echo "       sandbox.sh old-install <owner/repo> [--remove]" >&2
   exit 1
 }
 
@@ -146,8 +149,36 @@ create() {
   reset
 }
 
+# Installs this checkout's skills as an older release, agent-skills-old 0.0.1,
+# at local scope in the sandbox's clone, for TESTING.md's by-hand case.
+# --remove takes it away again. The plugin's folder stays in testing/logs/
+# meanwhile: Claude Code loads the skills from there.
+old_install() {
+  local remove=false repo_json clone folder=$here/logs/old-plugin
+  case $# in 0) ;; 1) [ "$1" = --remove ] || usage; remove=true ;; *) usage ;; esac
+  repo_json=$(orca_repo "$repo")
+  [ "$repo_json" != null ] || { echo "$repo isn't added to Orca. Clone it and run: orca repo add --path <clone>" >&2; exit 1; }
+  clone=$(echo "$repo_json" | js 'd.path.replace(/\\/g, "/")')
+
+  if $remove; then
+    old_plugin_remove "$clone" "$folder"
+    rm -rf "$folder"
+    echo "Removed $old_plugin_id from $clone"
+    return
+  fi
+  [ ! -e "$folder" ] || { echo "$folder exists: run sandbox.sh old-install $repo --remove first." >&2; exit 1; }
+  old_plugin_folder "$here/.." "$folder"
+  old_plugin_install "$clone" "$folder"
+  cat <<MSG
+Installed $old_plugin_id at local scope in $clone. The latest release is $(latest_release).
+Start a new Claude Code session there and run /agent-skills-old:ship-tickets.
+Remove it afterwards: bash testing/sandbox.sh old-install $repo --remove
+MSG
+}
+
 case $command in
   create) create "$@" ;;
   reset) reset "$@" ;;
+  old-install) old_install "$@" ;;
   *) usage ;;
 esac

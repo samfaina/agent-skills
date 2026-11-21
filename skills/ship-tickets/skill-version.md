@@ -26,7 +26,7 @@ Compare the two versions as numbers, part by part: 0.10.0 is newer than 0.9.0.
 
 ## The update command
 
-Only for **older**. In Claude Code, find the entry of `claude plugin list --json` whose `installPath` has the same realpath as the plugin root (realpaths as `skill-provenance.md` defines them). The command is `claude plugin update <id> --scope <scope>`, with that entry's `id` and `scope`, and the update applies to sessions started after it.
+Only for **older**. In Claude Code, find the entry of `claude plugin list --json` whose `installPath` or `readFromFolder` has the same realpath as the plugin root (realpaths as `skill-provenance.md` defines them). An install from a marketplace on GitHub loads from its `installPath`, in the plugin cache. One from a marketplace in a local folder has a `readFromFolder` and loads from that folder instead. The command is `claude plugin update <id> --scope <scope>`, with that entry's `id` and `scope`, and the update applies to sessions started after it.
 
 With no such entry, the harness loads the skills from a folder no plugin install manages, such as a checkout or Claude Code's `--plugin-dir`. Instead of a command, say to update the copy at the plugin root to the latest release.
 

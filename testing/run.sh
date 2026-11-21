@@ -6,8 +6,8 @@
 # Resets the sandbox, starts the coordinator non-interactively in an Orca
 # terminal in the sandbox's clone, waits for it, and ends with verify.sh's
 # result. Runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills
-# two-tdd old-install blocked setup-noop outside-orca. The coordinator's
-# output goes to testing/logs/.
+# two-tdd old-install old-plugin-dir blocked setup-noop outside-orca. The
+# coordinator's output goes to testing/logs/.
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -15,7 +15,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 
 usage() {
   echo "usage: run.sh <owner/repo> <run> [--coordinator claude|opencode]" >&2
-  echo "runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills two-tdd old-install blocked setup-noop outside-orca" >&2
+  echo "runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills two-tdd old-install old-plugin-dir blocked setup-noop outside-orca" >&2
   exit 1
 }
 
@@ -74,22 +74,33 @@ copy_tdd() {
   said+=("${root//./\\.}[\\/]+skills[\\/]+tdd")
 }
 
-# Loads this checkout's skills as an older release, 0.0.1, for this run's
-# session only, under another plugin name so the installed agent-skills keeps
-# its own. The coordinator must name both versions.
+# Writes this checkout's skills as an older release, agent-skills-old 0.0.1,
+# to $work/old-plugin, and expects the coordinator to name both versions.
 old_plugin() {
-  local copy=$work/old-plugin latest
-  latest=$(gh api -H 'Accept: application/vnd.github.raw+json' \
-    repos/samfaina/agent-skills/contents/.claude-plugin/plugin.json --jq .version)
+  local latest
+  latest=$(latest_release)
   [ -n "$latest" ] || { echo "Can't read the latest release's version." >&2; exit 1; }
-  mkdir -p "$copy/.claude-plugin"
-  cp -R "$here/../skills" "$copy/"
-  js 'd.name = "agent-skills-old"; d.version = "0.0.1"; JSON.stringify(d, null, 2)' \
-    < "$here/../.claude-plugin/plugin.json" > "$copy/.claude-plugin/plugin.json"
-  plugin_dir=$copy
-  if $windows; then plugin_dir=$(cygpath -m "$copy"); fi
-  said+=("$(version_regex "$latest")")
-  echo "Copied the skills to $copy as agent-skills-old 0.0.1; the latest release is $latest"
+  old_plugin_folder "$here/.." "$work/old-plugin"
+  said+=("$(version_regex 0.0.1)" "$(version_regex "$latest")")
+  echo "Wrote agent-skills-old 0.0.1 to $work/old-plugin; the latest release is $latest"
+}
+
+# Installs the older release at local scope in the clone until the run ends,
+# and expects the coordinator to give the update command for that install.
+old_install() {
+  old_plugin
+  # Registered first, so a failed install is undone too.
+  cleanups+=("old_plugin_remove $(printf %q "$clone") $(printf %q "$work/old-plugin") && echo $(printf %q "Removed $old_plugin_id")")
+  old_plugin_install "$clone" "$work/old-plugin"
+  said+=("claude plugin update $old_plugin_id --scope local")
+  echo "Installed $old_plugin_id at local scope in $clone"
+}
+
+# Loads the older release with --plugin-dir, for this run's session only. No
+# plugin install manages it, so there is no update command to give.
+old_plugin_dir() {
+  old_plugin
+  plugin_dir=$(native_path "$work/old-plugin")
 }
 
 # What each run resets, starts and checks. `tickets` is the merge order a loop
@@ -139,11 +150,12 @@ case $run in
     reset_args=(--workers '`opencode` (all roles)') prepare=copy_tdd stopped=true
     said=('\.claude[\/]+skills[\/]+tdd') ran=()
     ;;
-  old-install)
+  old-install | old-plugin-dir)
     # With no one to answer whether to go on with 0.0.1, the loop stops before
     # its first ticket, even with Merge approval auto.
-    skill=agent-skills-old:ship-tickets prepare=old_plugin stopped=true ran=()
-    said=("$(version_regex 0.0.1)")
+    skill=agent-skills-old:ship-tickets stopped=true ran=()
+    prepare=old_install
+    [ "$run" = old-install ] || prepare=old_plugin_dir
     ;;
   blocked)
     skill_args='auto 2' stopped=true ran=()
@@ -165,7 +177,7 @@ if [ -n "$coordinator_override" ]; then
   case $coordinator_override in claude | opencode) ;; *) usage ;; esac
   [ "$run" != 3.4 ] || { echo "Run 3.4 is OpenCode only." >&2; exit 1; }
   [ "$run" != auto-mode ] || { echo "Run auto-mode is Claude Code only." >&2; exit 1; }
-  [ "$run" != old-install ] || { echo "Run old-install is Claude Code only." >&2; exit 1; }
+  case $run in old-install | old-plugin-dir) echo "Run $run is Claude Code only." >&2; exit 1 ;; esac
   coordinator=$coordinator_override
 fi
 # The coordinator's shells get MSYS_NO_PATHCONV=1, except in setup runs: those
