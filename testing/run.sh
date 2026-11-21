@@ -6,8 +6,8 @@
 # Resets the sandbox, starts the coordinator non-interactively in an Orca
 # terminal in the sandbox's clone, waits for it, and ends with verify.sh's
 # result. Runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills
-# two-tdd blocked setup-noop outside-orca. The coordinator's output goes to
-# testing/logs/.
+# two-tdd old-install blocked setup-noop outside-orca. The coordinator's
+# output goes to testing/logs/.
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -15,7 +15,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 
 usage() {
   echo "usage: run.sh <owner/repo> <run> [--coordinator claude|opencode]" >&2
-  echo "runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills two-tdd blocked setup-noop outside-orca" >&2
+  echo "runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills two-tdd old-install blocked setup-noop outside-orca" >&2
   exit 1
 }
 
@@ -74,6 +74,24 @@ copy_tdd() {
   said+=("${root//./\\.}[\\/]+skills[\\/]+tdd")
 }
 
+# Loads this checkout's skills as an older release, 0.0.1, for this run's
+# session only, under another plugin name so the installed agent-skills keeps
+# its own. The coordinator must name both versions.
+old_plugin() {
+  local copy=$work/old-plugin latest
+  latest=$(gh api -H 'Accept: application/vnd.github.raw+json' \
+    repos/samfaina/agent-skills/contents/.claude-plugin/plugin.json --jq .version)
+  [ -n "$latest" ] || { echo "Can't read the latest release's version." >&2; exit 1; }
+  mkdir -p "$copy/.claude-plugin"
+  cp -R "$here/../skills" "$copy/"
+  js 'd.name = "agent-skills-old"; d.version = "0.0.1"; JSON.stringify(d, null, 2)' \
+    < "$here/../.claude-plugin/plugin.json" > "$copy/.claude-plugin/plugin.json"
+  plugin_dir=$copy
+  if $windows; then plugin_dir=$(cygpath -m "$copy"); fi
+  said+=("$(version_regex "$latest")")
+  echo "Copied the skills to $copy as agent-skills-old 0.0.1; the latest release is $latest"
+}
+
 # What each run resets, starts and checks. `tickets` is the merge order a loop
 # run must reach; `stopped` runs must stop before their first ticket instead.
 # `said` patterns must match what the coordinator wrote, `ran` patterns the
@@ -81,9 +99,10 @@ copy_tdd() {
 # they hold in any language the coordinator writes in. A loop run's report is
 # checked by verify.sh instead: its last message must link each merged PR.
 # `prepare` breaks what the run tests, after the reset.
+# `plugin_dir` is a plugin folder the Claude Code coordinator loads for the run.
 # `claude_permissions` is how a Claude Code coordinator gets past permission
 # checks: skipped for every run but auto-mode, which keeps them on.
-reset_args=() coordinator=claude skill=ship-tickets skill_args=auto prepare=''
+reset_args=() coordinator=claude skill=ship-tickets skill_args=auto prepare='' plugin_dir=''
 claude_permissions=(--dangerously-skip-permissions)
 tickets=(1 3 2 4) stopped=false in_orca=true unset_shell=false
 said=() ran=('run-create') cleanup_refusable=false
@@ -120,6 +139,12 @@ case $run in
     reset_args=(--workers '`opencode` (all roles)') prepare=copy_tdd stopped=true
     said=('\.claude[\/]+skills[\/]+tdd') ran=()
     ;;
+  old-install)
+    # With no one to answer whether to go on with 0.0.1, the loop stops before
+    # its first ticket, even with Merge approval auto.
+    skill=agent-skills-old:ship-tickets prepare=old_plugin stopped=true ran=()
+    said=("$(version_regex 0.0.1)")
+    ;;
   blocked)
     skill_args='auto 2' stopped=true ran=()
     said=('#3([^0-9]|$)')
@@ -140,6 +165,7 @@ if [ -n "$coordinator_override" ]; then
   case $coordinator_override in claude | opencode) ;; *) usage ;; esac
   [ "$run" != 3.4 ] || { echo "Run 3.4 is OpenCode only." >&2; exit 1; }
   [ "$run" != auto-mode ] || { echo "Run auto-mode is Claude Code only." >&2; exit 1; }
+  [ "$run" != old-install ] || { echo "Run old-install is Claude Code only." >&2; exit 1; }
   coordinator=$coordinator_override
 fi
 # The coordinator's shells get MSYS_NO_PATHCONV=1, except in setup runs: those
@@ -173,6 +199,14 @@ for branch in $(git -C "$clone" branch --format='%(refname:short)'); do
 done
 
 [ -z "$prepare" ] || $prepare
+
+# A loop run's report names the version of the loop that ran. Claude Code's
+# copy has a plugin.json to read it from; one from `npx skills add` doesn't.
+loop_version_regex=''
+if ! $stopped && [ "$coordinator" = claude ]; then
+  loop_version_regex=$(cd "$clone" && claude plugin list --json | plugin_version_regex)
+  [ -n "$loop_version_regex" ] || { echo "agent-skills isn't installed and enabled in Claude Code." >&2; exit 1; }
+fi
 
 # Forces one PR red, so a fix worker runs: once the first ticket's PR is open,
 # push a commit that drops its CHANGELOG.md line. The implement worker's code
@@ -219,7 +253,9 @@ if $windows && ! $no_pathconv; then prompt="/$prompt"; fi
 
 case $coordinator in
   claude)
-    command=(claude -p "$prompt" "${claude_permissions[@]}" --output-format stream-json --verbose) ;;
+    command=(claude -p "$prompt" "${claude_permissions[@]}" --output-format stream-json --verbose)
+    [ -z "$plugin_dir" ] || command+=(--plugin-dir "$plugin_dir")
+    ;;
   opencode)
     command=(opencode run --command "$skill" --auto --format json)
     # The arguments are words without spaces, so splitting them is safe.
@@ -285,6 +321,7 @@ for regex in ${ran[@]+"${ran[@]}"}; do verify_args+=(--expect "$regex"); done
 if $stopped; then
   verify_args+=(--stopped)
 else
+  [ -z "$loop_version_regex" ] || verify_args+=(--log "$out.report.txt" --expect "$loop_version_regex")
   verify_args+=(--report "$out.report.txt")
   ! $cleanup_refusable || verify_args+=(--cleanup-refusable)
   verify_args+=("${tickets[@]}")

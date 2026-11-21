@@ -9,10 +9,13 @@ You are the **coordinator**: you own the ticket order, the CI wait and the merge
 3. Resolve the **ticket set**: the issue numbers from the arguments, in the order the user gave them, or, with none, every open issue labelled `ready-for-agent`, lowest number first.
 4. Resolve the **merge approval**, `ask` or `auto`: the override from the arguments when the user gave one, otherwise the **Merge approval** field in `shipping.md`. A file without the field means `ask`.
 5. Resolve the **worker agents** from the **Workers** field in `shipping.md`: one Orca agent id for each role: implement, PR and fix. A single id applies to all three roles, and a role the field leaves out gets `claude`. A file without the field means `claude` for all roles.
-6. Check that the implement agent will load Matt Pocock's `tdd` and `code-review`: run the provenance check in `skill-provenance.md`, in this skill's own folder, for that agent. On a fail, stop before the first ticket and report the skill and its path. Keep the resolved folders: each ticket's step 3 (Implement worker) compares the worker's report with them.
-7. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
+6. Check which version of the loop runs: run the version check in `skill-version.md`, in this skill's own folder. Keep its result for the final report. By the result:
+   - **current** or **unknown**: say it in one line, with the running version whenever you read it, and go on: `ship-tickets 0.9.0`, `ship-tickets 0.9.0, latest release unknown: gh api failed`, or `ship-tickets: version unknown, no plugin.json`.
+   - **older**: show the user both versions and the update command, and ask them to pick one and wait for the answer, even with Merge approval `auto`, since what the run does depends on the version; if your harness has a structured question tool, use it. **Stop** (offered first) stops before the first ticket, for the user to update and start a new session. **Go on** runs the loop as this older version. If no one can answer, as in a non-interactive run where a question gets no reply, don't ask: stop before the first ticket, with both versions and the update command.
+7. Check that the implement agent will load Matt Pocock's `tdd` and `code-review`: run the provenance check in `skill-provenance.md`, in this skill's own folder, for that agent. On a fail, stop before the first ticket and report the skill and its path. Keep the resolved folders: each ticket's step 3 (Implement worker) compares the worker's report with them.
+8. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
 
-Done when the guide is loaded, `shipping.md` is read, the ticket set is an ordered list of numbers, the merge approval is `ask` or `auto`, each worker role has an agent id, `tdd` and `code-review` each have a resolved folder, and a Run is bound.
+Done when the guide is loaded, `shipping.md` is read, the ticket set is an ordered list of numbers, the merge approval is `ask` or `auto`, each worker role has an agent id, the version check has a result and, when older, the user's answer, `tdd` and `code-review` each have a resolved folder, and a Run is bound.
 
 ## For each ticket
 
@@ -156,7 +159,9 @@ Stop the loop and leave the ticket's worktree and PR exactly as they are when:
 
 ## Final report
 
-Per ticket in the set: **merged** (PR link, whether the user approved a merge the harness refused, the exact **After merge** command for a cleanup the harness refused, the command and its output for a cleanup that failed, and the `worktree rm` command for any removal the harness refused), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it, or the failed provenance check). For a merged or stopped ticket, also list each follow-up sent back at step 3 and how it was resolved: fixed, kept as pre-existing with the worker's reason, or unresolved because the loop stopped. Whether each kept follow-up was opened or folded comes after the report, at the **Link** step of "Follow-ups".
+Start with the version of the loop that ran, from the version check before the first ticket: the running version whenever you read it, plus the latest release and the update command when it is older, and what couldn't be read and why. A retro then knows which loop ran.
+
+Per ticket in the set: **merged** (PR link, whether the user approved a merge the harness refused, the exact **After merge** command for a cleanup the harness refused, the command and its output for a cleanup that failed, and the `worktree rm` command for any removal the harness refused), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it, the failed provenance check, or a stop to update an older version). For a merged or stopped ticket, also list each follow-up sent back at step 3 and how it was resolved: fixed, kept as pre-existing with the worker's reason, or unresolved because the loop stopped. Whether each kept follow-up was opened or folded comes after the report, at the **Link** step of "Follow-ups".
 
 If the harness refused a cleanup, also say that turning on GitHub's "Automatically delete head branches" setting and running `setup-ship-tickets` again removes the step: GitHub then deletes the branch on merge, and **After merge** becomes "nothing".
 

@@ -59,6 +59,24 @@ comments_posted() {
   js 'd.flat().filter((c) => c.created_at >= a[1] && c.html_url.includes("/issues/") && !/^Shipped in #\d+$/.test(c.body.trim())).map((c) => c.issue_url.split("/").pop()).filter((n, i, all) => all.indexOf(n) === i)' "$@"
 }
 
+# Prints an extended regex that matches any of the versions given as
+# arguments, such as 0.9.0, but not inside a longer version: neither 10.9.0
+# nor 0.9.0.1 matches, and a period ending a sentence does.
+version_regex() {
+  local v alternatives=''
+  for v in "$@"; do alternatives+="${alternatives:+|}${v//./\\.}"; done
+  printf '(^|[^0-9.])(%s)(\\.?([^0-9.]|$))\n' "$alternatives"
+}
+
+# Prints a version_regex of each enabled agent-skills install's version, from
+# the JSON of `claude plugin list --json` on stdin. Prints nothing when none
+# is enabled.
+plugin_version_regex() {
+  local versions
+  versions=$(js '[...new Set(d.filter((p) => p.id.startsWith("agent-skills@") && p.enabled).map((p) => p.version))]')
+  [ -z "$versions" ] || version_regex $versions
+}
+
 # Prints the Orca repo entry of <owner/repo> as JSON, or `null` when the
 # sandbox isn't added to Orca.
 orca_repo() {

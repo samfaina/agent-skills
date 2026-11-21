@@ -39,7 +39,7 @@ Once per machine:
 - [ ] The sandbox is created (above), cloned, and the clone is added to Orca as a repo (`orca repo add --path <clone>`). Every coordinator below runs in an Orca terminal in that clone.
 - [ ] `gh` is logged in with admin access to the sandbox.
 - [ ] `node` is on `PATH`. The scripts use it to read JSON.
-- [ ] **Claude Code:** the `agent-skills` and `mattpocock-skills` plugins are installed and enabled.
+- [ ] **Claude Code:** the `agent-skills` and `mattpocock-skills` plugins are installed and enabled, and `agent-skills` is at the version in `.claude-plugin/plugin.json` on `main` (`claude plugin update agent-skills@samfaina`). An older install stops every `/ship-tickets` run before its first ticket, at the version check.
 - [ ] **OpenCode:** both sets of skills are installed with `npx skills add <repo> --agent opencode -g`, and `~/.config/opencode/opencode.json` denies both skills to the model ([Harnesses](docs/harnesses.md#keeping-the-skills-user-invoked)).
 - [ ] **OpenCode model:** `model` in `~/.config/opencode/opencode.json` (or `.jsonc`) names one model, such as `openrouter/thinkingmachines/inkling:free`. `run.sh` passes no `-m`, so every OpenCode coordinator and worker uses this model. Don't pick a router such as `openrouter/free`: it picks a different model for each request, so a failure can't be traced to one model. Free models are rate-limited. OpenRouter allows 20 requests a minute, and 50 a day until the account has bought 10 credits, then 1,000. The OpenCode coordinator in 3.2 alone made about 90 requests on 0.4.4. If the model hits its limit or keeps failing during a run, set another model, rerun the case, and write in its result which model it ran on.
 - [ ] **Windows:** `pwsh --version` is 7.3 or later.
@@ -133,7 +133,7 @@ A run that has to stop before its first ticket passes when no PR and no worktree
 
 You can also run `verify.sh` on its own after a run, with the tickets in the order they must merge: `bash testing/verify.sh <sandbox> 1 3 2 4`. It checks the last message only with `--report <run>-<time>.report.txt`.
 
-`bash testing/report-test.sh` tests how `run.sh` and `verify.sh` read the coordinator's output, with no network: the said, ran and report files from a Claude Code and an OpenCode event log, the check that the report links each PR, the check that it gives a refused cleanup's command, and the checks that the run opened no issue and posted no comment on one.
+`bash testing/report-test.sh` tests how `run.sh` and `verify.sh` read the coordinator's output, with no network: the said, ran and report files from a Claude Code and an OpenCode event log, the check that the report links each PR, the check that it gives a refused cleanup's command, the checks that the run opened no issue and posted no comment on one, and the regex `run.sh` matches the version of the loop against.
 
 ## 1. Setup
 
@@ -216,6 +216,7 @@ Each run breaks one thing, runs a skill in Claude Code, and restores the thing a
 - [ ] **No `shipping.md`.** `bash testing/run.sh <sandbox> no-shipping-md`: `/ship-tickets` stops before the first ticket and tells you to run `setup-ship-tickets`.
 - [ ] **Matt's skills missing in Claude Code.** `bash testing/run.sh <sandbox> no-matt-skills` disables the `mattpocock-skills` plugin while `/ship-tickets` runs: the provenance check fails before the first ticket and names the missing plugin. Other Claude Code sessions you start meanwhile don't get the plugin either.
 - [ ] **Two copies of `tdd` in OpenCode.** `bash testing/run.sh <sandbox> two-tdd` sets Workers to `opencode` and copies `tdd/SKILL.md` to `~/.claude/skills/tdd/`, which OpenCode also loads: the provenance check fails and names both paths. The script refuses to run if that folder already exists.
+- [ ] **An older install.** `bash testing/run.sh <sandbox> old-install` copies this checkout's skills to a temporary plugin `agent-skills-old` with version `0.0.1`, and runs `/agent-skills-old:ship-tickets auto` with `claude --plugin-dir` on that copy, leaving the installed plugin as it is. Nobody can answer whether to go on with the older version, so the coordinator stops before the first ticket, even with Merge approval `auto`, and names `0.0.1` and the latest release's version from `.claude-plugin/plugin.json` on `main`.
 - [ ] **Blocked ticket.** `bash testing/run.sh <sandbox> blocked` runs `/ship-tickets auto 2`: it stops before starting a worker and reports that #3 holds #2.
 
 ## 3. The loop
@@ -235,13 +236,13 @@ One run per row of the harness matrix. Each run ships all four tickets unless th
 - [ ] `bash testing/run.sh <sandbox> auto-mode` passes. It runs `/ship-tickets auto 1` in Claude Code with permission checks on (`--permission-mode auto`), where every other Claude Code run skips them. Auto mode refuses a merge no human approved, and the sandbox has no allow rule, so the run merges only if the merge hook approves it, which needs the plain command run on its own. `run.sh` checks that the coordinator ran it with the Bash tool, as the loop says, and ran the **After merge** step `git push origin --delete <branch>` on its own with the Bash tool too. Auto mode may refuse that deletion. The run passes either way: with the branch deleted, or with the branch left and the last message giving the command and naming `setup-ship-tickets`. Write in the case's result which one happened.
 - [ ] `bash testing/run.sh <sandbox> order` passes. It runs `/ship-tickets auto 2 3 1` in Claude Code, or in OpenCode with `--coordinator opencode`, and the tickets must merge in the order #3, #2, #1: the numbers set the order, #2 waits until #3 is closed, and then it ships ahead of #1. Lowest-numbered first would merge #1, #3, #2.
 
-Besides `verify.sh`'s checks, `run.sh` checks the commands each coordinator ran: it bound a Run and started workers with the agents Workers names (`--agent claude`, plus `--agent opencode` in 3.3). In 3.4 it also checks that the coordinator resolved `orca` with `Get-Command`, which finds `orca.exe` before `orca.cmd`, and passed the specs as single-quoted here-strings: the two things that get a spec to a worker intact on Windows.
+Besides `verify.sh`'s checks, `run.sh` checks the commands each coordinator ran: it bound a Run and started workers with the agents Workers names (`--agent claude`, plus `--agent opencode` in 3.3). In a run whose coordinator is Claude Code, the last message must also name the version of the `agent-skills` plugin `claude plugin list --json` shows enabled, as the version of the loop that ran. An OpenCode coordinator's copy, from `npx skills add`, has no `plugin.json`, so its version is unknown and the run doesn't check it. In 3.4 it also checks that the coordinator resolved `orca` with `Get-Command`, which finds `orca.exe` before `orca.cmd`, and passed the specs as single-quoted here-strings: the two things that get a spec to a worker intact on Windows.
 
 ### 3.1 by hand: Merge approval `ask`
 
 Reset with ``--workers '`opencode` (all roles)'``, and run `/ship-tickets` in Claude Code.
 
-- [ ] Before the first ticket: the provenance check passes for the implement agent, and one Run is bound.
+- [ ] Before the first ticket: the coordinator says in one line which version of the loop runs, such as `ship-tickets 0.9.0`, without asking anything, the provenance check passes for the implement agent, and one Run is bound.
 - [ ] Tickets ship in the order #1, #3, #2, #4. #2 waits until #3 is closed.
 - [ ] Each worktree's name follows Branch naming in `shipping.md`.
 - [ ] Each worker starts in OpenCode. Check the agent of each worker terminal in Orca.
@@ -251,7 +252,7 @@ Reset with ``--workers '`opencode` (all roles)'``, and run `/ship-tickets` in Cl
 - [ ] Before each merge, `AskUserQuestion` shows the PR URL, title and size and offers Merge, Request changes and Stop.
 - [ ] On one ticket, pick **Request changes** with a note that also asks for two things clearly out of its scope (such as "add a test for an empty string, add a `reverse(text)` function to `src/index.js`, and add a `capitalize(text)` function to `src/index.js`"). A fix worker (task title `#<n> fix`) applies the part in scope, adds no `reverse` and no `capitalize`, CI runs again, and the coordinator asks again.
 - [ ] After each merge: the PR is squash-merged, the issue is closed, the remote branch is deleted, the worktree is removed, and `worker-list --terminal-state reclaimable` returns no rows.
-- [ ] On the last ticket, pick **Stop**. The PR stays open, and the final report lists each ticket as merged with its PR link, and the last one as stopped.
+- [ ] On the last ticket, pick **Stop**. The PR stays open, and the final report starts with the version of the loop that ran, then lists each ticket as merged with its PR link, and the last one as stopped.
 - [ ] The fix worker's out-of-scope requests aren't sent back to it, even though they name `src/index.js`, a file every branch but #2's changes: the coordinator checks only the implement workers' follow-ups.
 - [ ] If an implement worker reports a follow-up that names a file its branch changed, or no file, the coordinator sends it back with `orca orchestration send` before releasing the worker, waits for its new `worker_done`, and the final report says whether the follow-up was fixed or kept as pre-existing, with the worker's reason. Write in the case's result whether a follow-up was sent back.
 - [ ] After the final report, the coordinator shows the follow-ups as a numbered list, the two out-of-scope requests among them as two entries with the ticket they came from, and asks with `AskUserQuestion` offering **All**, **None** and **Choose**. It opens no issue and posts no comment before you answer.

@@ -19,6 +19,12 @@ The skills aren't installed for the harness you're running. Claude Code loads th
 
 The skills are installed twice in the same harness, usually once through the plugin and once through `npx skills add`. Remove one of them: `/plugin uninstall agent-skills@samfaina` in Claude Code, or `npx skills remove` for the skills.sh copy.
 
+## An older version of the loop runs
+
+The harness loads the copy of the skills you installed, and that copy keeps its version until you update it, so two repos can run different versions of the same `/ship-tickets`. Before the first ticket, the coordinator compares its version with the latest release. When it is older, it shows both versions and the update command, such as `claude plugin update agent-skills@samfaina --scope user`, and asks whether to go on or stop. Pick **Stop**, run the command, start a new session, and run the skill again. In a run where no one can answer, the loop stops there.
+
+The final report names the version that ran, and `/setup-ship-tickets` reports an older version as a preflight failure. A copy from `npx skills add` has no `plugin.json` to read, so the coordinator says the version is unknown and goes on.
+
 ## "docs/agents/shipping.md is missing"
 
 The default branch on the remote doesn't have the file. Run `/setup-ship-tickets` and merge the PR it opens. A copy on your local branch doesn't count: the loop reads the remote default branch.
