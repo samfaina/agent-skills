@@ -42,6 +42,7 @@ For each field, take the value from the first source that settles it:
 | Branch naming | the pattern in `gh pr list --state all --limit 30 --json headRefName` |
 | After merge | `deleteBranchOnMerge: true` → "nothing"; otherwise the branch-deletion question below settles it |
 | CI | `pull_request` triggers in `.github/workflows/`, plus `gh pr view <recent-pr> --json statusCheckRollup` on two or three recent PRs to catch external checks. Checks found → `required`; none → `none` |
+| Base CI | `push` triggers in `.github/workflows/`: `wait` when any workflow has a `push` trigger that covers the base branch, with no `branches` filter or one that includes it, by name or glob, and no `branches-ignore` that excludes it (a bare `on: push` covers every branch); `none` otherwise, as for workflows that trigger only on `pull_request` |
 | PR title and body | `.github/pull_request_template.md` (or `.github/PULL_REQUEST_TEMPLATE/`) if present; otherwise the sections the last merged PRs share (`gh pr view <n> --json title,body`) |
 | Workers | no repo setting covers it, so it stays unsettled; the inferred value is `claude` for all roles |
 

@@ -23,6 +23,11 @@
 #                       remote branch left behind passes when the --report
 #                       file gives `git push origin --delete <branch>` and
 #                       names setup-ship-tickets
+#   --base-ci-red       the loop stopped on a red Base CI: with --stopped,
+#                       main's head at the run's start; otherwise, the last
+#                       ticket's merge commit, and the run opened no PR for a
+#                       ticket after it. That commit has a failed push run,
+#                       and the --report file links each one
 #
 # Exits non-zero on the first failed check and names it.
 set -eEuo pipefail
@@ -31,8 +36,8 @@ here=$(cd "$(dirname "$0")" && pwd)
 . "$here/lib.sh"
 
 usage() {
-  echo "usage: verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… [--report <file> [--cleanup-refusable]] [tickets…]" >&2
-  echo "       verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… --stopped" >&2
+  echo "usage: verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… [--report <file> [--cleanup-refusable] [--base-ci-red]] [tickets…]" >&2
+  echo "       verify.sh <owner/repo> [--since <time>] [--log <file> [--expect <regex>]…]… [--report <file> --base-ci-red] --stopped" >&2
   exit 1
 }
 
@@ -40,7 +45,7 @@ usage() {
 repo=$1
 shift
 
-since='' log='' report='' stopped=false cleanup_refusable=false
+since='' log='' report='' stopped=false cleanup_refusable=false base_ci_red=false
 expect_logs=() expects=() tickets=()
 while [ $# -gt 0 ]; do
   case $1 in
@@ -50,11 +55,13 @@ while [ $# -gt 0 ]; do
     --report) [ $# -ge 2 ] || usage; report=$2; shift 2 ;;
     --stopped) stopped=true; shift ;;
     --cleanup-refusable) cleanup_refusable=true; shift ;;
+    --base-ci-red) base_ci_red=true; shift ;;
     [0-9]*) tickets+=("$1"); shift ;;
     *) usage ;;
   esac
 done
 [ ${#tickets[@]} -gt 0 ] || tickets=(1 3 2 4)
+! $base_ci_red || [ -n "$report" ] || usage
 
 ok() { echo "ok    $*"; }
 fail() {
@@ -97,6 +104,21 @@ check_report() {
   ok "coordinator report links PR $(printf '#%s ' "${prs[@]}")($(basename "$report"))"
 }
 
+# The loop stopped on the red Base CI of <commit>: the commit has a failed
+# push run, and the report links each one, as /actions/runs/<id>.
+check_base_ci() {
+  local commit=$1 runs id missing=''
+  runs=$(gh run list --repo "$repo" --commit "$commit" --event push --limit 50 \
+    --json databaseId,workflowName,status,conclusion,createdAt | failed_runs)
+  [ -n "$runs" ] || fail "Base CI: ${commit:0:7} has no failed push run, or it is still running"
+  [ -s "$report" ] || fail "coordinator report: $report is missing or empty"
+  for id in $runs; do
+    grep -Eq -- "/actions/runs/$id([^0-9]|$)" "$report" || missing+="$id "
+  done
+  [ -z "$missing" ] || fail "coordinator report: the last message doesn't link the failed Base CI run(s) ${missing}of ${commit:0:7} ($(basename "$report"))"
+  ok "Base CI: ${commit:0:7} failed, and the report links run(s) $(echo $runs)"
+}
+
 check_orca() {
   local repo_json repo_id left runs workers
   repo_json=$(orca_repo "$repo")
@@ -127,6 +149,7 @@ if $stopped; then
   count=$(echo "$prs_json" | js 'd.length')
   [ "$count" = 0 ] || fail "no PR: the run opened $count PR(s): $(echo "$prs_json" | js 'd.map((p) => "#" + p.number).join(" ")')"
   ok "no PR opened"
+  ! $base_ci_red || check_base_ci "$base"
   check_orca
   echo "PASS  the run stopped before its first ticket"
   exit 0
@@ -230,7 +253,18 @@ commented=$(gh api "repos/$repo/issues/comments?since=$since&per_page=100" --pag
 [ -z "$commented" ] || fail "the run commented on issue(s) $(echo "$commented" | sed 's/^/#/' | tr '\n' ' ')with no one to approve them"
 ok "no comment posted on an issue"
 
+if $base_ci_red; then
+  # The loop stopped at the last ticket's Base CI, before the next ticket.
+  others=$(echo "$prs_json" | js 'd.filter((p) => !a.slice(1).includes(String(p.number))).map((p) => "#" + p.number).join(" ")' "${prs[@]}")
+  [ -z "$others" ] || fail "the loop went on after a red Base CI: the run opened PR(s) $others"
+  ok "no PR opened after the last ticket"
+  check_base_ci "$parent"
+fi
 check_orca
 check_log
 check_report
-echo "PASS  ${expected// / #} shipped"
+if $base_ci_red; then
+  echo "PASS  ${expected// / #} shipped, then the loop stopped on a red Base CI"
+else
+  echo "PASS  ${expected// / #} shipped"
+fi

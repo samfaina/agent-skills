@@ -9,7 +9,7 @@ Agent skills that ship GitHub tickets for you, from Claude Code, OpenCode or ano
 | Skill | What it does |
 | --- | --- |
 | `/setup-ship-tickets` | Checks the repo is ready for the loop and opens a PR adding `docs/agents/shipping.md`, filled from the repo's settings and PR history. Run it once per repo. |
-| `/ship-tickets [ask\|auto] [#n…]` | Ships the tickets one at a time: implement, open the PR, wait for CI, merge. With **Merge approval** `ask` it waits for your approval before each merge; with `auto` it merges as soon as CI is green. |
+| `/ship-tickets [ask\|auto] [#n…]` | Ships the tickets one at a time: implement, open the PR, wait for CI, merge. With **Merge approval** `ask` it waits for your approval before each merge; with `auto` it merges as soon as the PR's checks are green. Either way it stops if a merge turns the base branch red. |
 
 With no issue numbers, `/ship-tickets` takes every open issue labelled `ready-for-agent`. Without `ask` or `auto`, it uses the **Merge approval** field in `shipping.md`, which defaults to `ask`.
 

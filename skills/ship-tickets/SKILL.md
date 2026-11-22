@@ -1,6 +1,6 @@
 ---
 name: ship-tickets
-description: Ship GitHub tickets one at a time with Orca workers (implement, PR, CI, merge), merging each PR on your approval or as soon as CI is green.
+description: Ship GitHub tickets one at a time with Orca workers (implement, PR, CI, merge), merging each PR on your approval or as soon as its checks are green, and stopping when a merge turns the base branch red.
 argument-hint: "[ask|auto] [issue numbers…] (default: Merge approval from shipping.md, every open ready-for-agent issue)"
 disable-model-invocation: true
 ---

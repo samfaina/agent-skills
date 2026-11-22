@@ -5,9 +5,9 @@
 #
 # Resets the sandbox, starts the coordinator non-interactively in an Orca
 # terminal in the sandbox's clone, waits for it, and ends with verify.sh's
-# result. Runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills
-# two-tdd old-install old-plugin-dir blocked setup-noop outside-orca. The
-# coordinator's output goes to testing/logs/.
+# result. Runs: 3.2 3.3 3.4 auto-mode order red-after-merge no-shipping-md
+# no-matt-skills two-tdd old-install old-plugin-dir blocked red-base
+# setup-noop outside-orca. The coordinator's output goes to testing/logs/.
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -15,7 +15,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 
 usage() {
   echo "usage: run.sh <owner/repo> <run> [--coordinator claude|opencode]" >&2
-  echo "runs: 3.2 3.3 3.4 auto-mode order no-shipping-md no-matt-skills two-tdd old-install old-plugin-dir blocked setup-noop outside-orca" >&2
+  echo "runs: 3.2 3.3 3.4 auto-mode order red-after-merge no-shipping-md no-matt-skills two-tdd old-install old-plugin-dir blocked red-base setup-noop outside-orca" >&2
   exit 1
 }
 
@@ -103,6 +103,38 @@ old_plugin_dir() {
   plugin_dir=$(native_path "$work/old-plugin")
 }
 
+# Unsets BASE_CI_RED when the run ends, so the sandbox CI's push-only job
+# passes again.
+unset_base_ci_red_at_exit() {
+  cleanups+=("gh variable delete BASE_CI_RED --repo $(printf %q "$repo") >/dev/null 2>&1 && echo 'Unset BASE_CI_RED'")
+}
+
+# Fails every push run of main but the one of its head now, through the
+# sandbox CI's push-only job, until the run ends. The check before the first
+# ticket then sees main green, and the first merge turns it red.
+set_base_ci_red_after_head() {
+  local head
+  head=$(git -C "$clone" rev-parse HEAD)
+  unset_base_ci_red_at_exit
+  gh variable set BASE_CI_RED --repo "$repo" --body "$head" >/dev/null
+  echo "Set BASE_CI_RED to ${head:0:7}: main's push runs fail from the next commit on"
+}
+
+# Waits until GitHub lists a push run of main's head, which the reset's push
+# of a new commit starts. A check before it would find no run and fall back
+# to the older green runs of the branch.
+wait_for_head_run() {
+  local head count
+  head=$(git -C "$clone" rev-parse HEAD)
+  for _ in $(seq 60); do
+    count=$(gh run list --repo "$repo" --commit "$head" --event push --json databaseId --jq length)
+    [ "$count" = 0 ] || { echo "GitHub lists a push run of ${head:0:7}"; return 0; }
+    sleep 5
+  done
+  echo "GitHub lists no push run of ${head:0:7} after 5 minutes." >&2
+  exit 1
+}
+
 # What each run resets, starts and checks. `tickets` is the merge order a loop
 # run must reach; `stopped` runs must stop before their first ticket instead.
 # `said` patterns must match what the coordinator wrote, `ran` patterns the
@@ -111,12 +143,16 @@ old_plugin_dir() {
 # checked by verify.sh instead: its last message must link each merged PR.
 # `prepare` breaks what the run tests, after the reset.
 # `plugin_dir` is a plugin folder the Claude Code coordinator loads for the run.
+# `base_ci_red` runs stop on a red Base CI: before the first ticket in a
+# `stopped` run, after the last of `tickets` otherwise. The report must link
+# the failed runs and name the push-only job.
 # `claude_permissions` is how a Claude Code coordinator gets past permission
 # checks: skipped for every run but auto-mode, which keeps them on.
 reset_args=() coordinator=claude skill=ship-tickets skill_args=auto prepare='' plugin_dir=''
 claude_permissions=(--dangerously-skip-permissions)
-tickets=(1 3 2 4) stopped=false in_orca=true unset_shell=false
-said=() ran=('run-create') cleanup_refusable=false
+tickets=(1 3 2 4) stopped=false in_orca=true unset_shell=false base_ci_red=false
+# Every loop run reads the push runs of a commit, for Base CI.
+said=() ran=('run-create' 'gh run list .*--commit') cleanup_refusable=false
 case $run in
   3.2) coordinator=opencode ran+=('--agent claude') ;;
   3.3)
@@ -144,6 +180,11 @@ case $run in
     # again ahead of #1. Lowest-numbered first would merge 1 3 2.
     skill_args='auto 2 3 1' tickets=(3 2 1)
     ;;
+  red-after-merge)
+    # #1's PR checks pass, but its merge fails the push-only job, so the loop
+    # stops before #3 starts.
+    skill_args='auto 1 3' tickets=(1) prepare=set_base_ci_red_after_head base_ci_red=true
+    ;;
   no-shipping-md) reset_args=(--no-shipping-md) stopped=true said=('setup-ship-tickets') ran=() ;;
   no-matt-skills) prepare=disable_matt_skills stopped=true said=('mattpocock-skills') ran=() ;;
   two-tdd)
@@ -160,6 +201,13 @@ case $run in
   blocked)
     skill_args='auto 2' stopped=true ran=()
     said=('#3([^0-9]|$)')
+    ;;
+  red-base)
+    # main is red before the run. With no one to answer whether to go on, the
+    # loop stops before its first ticket, even with Merge approval auto.
+    reset_args=(--base-ci-red) stopped=true base_ci_red=true prepare=wait_for_head_run
+    ran=('gh run list .*--commit')
+    unset_base_ci_red_at_exit
     ;;
   setup-noop)
     skill=setup-ship-tickets skill_args='' stopped=true ran=()
@@ -330,7 +378,9 @@ verify_args=(--since "$since" --log "$out.said.txt")
 for regex in ${said[@]+"${said[@]}"}; do verify_args+=(--expect "$regex"); done
 verify_args+=(--log "$out.ran.txt")
 for regex in ${ran[@]+"${ran[@]}"}; do verify_args+=(--expect "$regex"); done
+! $base_ci_red || verify_args+=(--log "$out.report.txt" --expect 'push-only' --base-ci-red)
 if $stopped; then
+  ! $base_ci_red || verify_args+=(--report "$out.report.txt")
   verify_args+=(--stopped)
 else
   [ -z "$loop_version_regex" ] || verify_args+=(--log "$out.report.txt" --expect "$loop_version_regex")

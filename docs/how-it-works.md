@@ -26,7 +26,9 @@ flowchart TD
     fix --> ci
     merge -->|ask: request changes| fix
     merge --> clean[7#46; Clean up]
-    clean --> pick
+    clean --> base{8#46; Base CI}
+    base -->|green, known failures only, no run, or Base CI: none| pick
+    base -->|red on a new failure| report
 ```
 
 ## Before the first ticket
@@ -40,6 +42,7 @@ The coordinator:
 - reads from the **Workers** field which harness each worker role starts in;
 - says which version of the loop runs, and if a newer release exists, shows both versions and the update command and asks whether to go on or stop to update, even with Merge approval `auto` (see [An older version of the loop runs](troubleshooting#an-older-version-of-the-loop-runs)). If it can't read the version, it says so and goes on;
 - checks that the implement worker's harness will load the `tdd` and `code-review` from mattpocock/skills, and stops if it would load another skill with the same name (see [the provenance check](harnesses#the-skill-provenance-check));
+- checks the base branch's **Base CI**, the CI runs that pushes to it start, waiting for them if they are still running. Green, or no runs, it says so in one line. Red, it shows the failed jobs and asks whether to go on or stop, even with Merge approval `auto`, since every ticket would build on a red base (see [The base branch is red before the first ticket](troubleshooting#the-base-branch-is-red-before-the-first-ticket)). With `Base CI: none`, it skips the check;
 - opens one Orca run for the whole session, which every worker belongs to.
 
 ## 1. Pick
@@ -96,9 +99,21 @@ After the merge, the coordinator checks the issue closed, and closes it with a c
 
 ## 7. Clean up
 
-The coordinator runs the after-merge step from `shipping.md` (deleting the remote branch, for example), removes the worktree, and checks that no worker from the run is left behind. Then it picks the next ticket.
+The coordinator runs the after-merge step from `shipping.md` (deleting the remote branch, for example), removes the worktree, and checks that no worker from the run is left behind. Then it waits for Base CI.
 
 Each of these commands runs on its own, so the harness's permission check sees exactly what runs. If the harness refuses the after-merge step or the worktree removal, as Claude Code's auto mode can, the coordinator leaves it undone and carries on: the ticket is still shipped, and the final report gives you the command to run. If the branch deletion fails because GitHub already deleted the branch, the step counts as done. Any other error from the after-merge step goes in the final report with its output. To drop the step altogether, turn on GitHub's "Automatically delete head branches" setting. `/setup-ship-tickets` offers to on a first setup, and on a later one with Merge approval `auto`.
+
+## 8. Base CI
+
+A repo can run a wider set of jobs on a push to the base branch than on its PRs, such as a full OS matrix only on `main`. Then a PR whose checks are green can still turn the base branch red. So after the merge the coordinator waits for the push runs of the merge commit, with no time cap, the same way it waits on a PR's checks.
+
+- **Green:** it picks the next ticket.
+- **Red:** it stops the loop and reports the failed jobs and the run links. The PR stays merged and the ticket closed, and it posts no comment, reverts nothing and reopens nothing: you decide whether to fix the base branch or revert the merge. See [The loop stopped after a merge turned the base branch red](troubleshooting#the-loop-stopped-after-a-merge-turned-the-base-branch-red).
+- **No run within 2 minutes:** it picks the next ticket, and the final report says so. The push may be filtered by `paths` or `paths-ignore`, or the repo runs no CI on push.
+
+If you chose to go on with a red base before the first ticket, the jobs that were failing then are **known failures**: they don't stop the loop while they keep failing, and the final report names them. One that passes once stops being known, so if it fails again later, the loop stops. A ticket that breaks a known failure in a new way can't be told apart from it.
+
+With `Base CI: none` in `shipping.md`, this step is skipped. It doesn't depend on **CI**: with `CI: none`, the loop still waits here.
 
 ## Follow-ups
 

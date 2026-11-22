@@ -5,7 +5,7 @@ You are the **coordinator**: you own the ticket order, the CI wait and the merge
 ## Before the first ticket
 
 1. Resolve `orca` on `PATH` (`command -v orca` in POSIX shells, `(Get-Command orca).Source` in PowerShell) and load Orca's orchestration guide with `orca skills get orchestration`. On Windows it must resolve to `orca.exe`: `orca.cmd` runs arguments through `cmd.exe`, which cuts a multi-line spec at its first newline. If it resolves to `orca.cmd`, call the `orca.exe` beside it by its full path. Use this executable for every `orca` command in the run. The guide is the source of truth for every `orca orchestration` command below and for its safety floor: an empty or timed-out wait is a checkpoint, and only an accepted `worker_done` authorizes `worker-release`. Before any stop, abandon or retry, load its `references/recovery-and-cleanup.md`.
-2. Read `docs/agents/shipping.md` as the remote default branch holds it, so the loop runs the same from any worktree: `git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`, where `<default>` comes from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. It sets the base branch, merge method, merge approval, branch naming, CI, workers, PR format and post-merge cleanup. If the default branch lacks the file, stop and tell the user to run `setup-ship-tickets` and merge the PR it opens.
+2. Read `docs/agents/shipping.md` as the remote default branch holds it, so the loop runs the same from any worktree: `git fetch origin`, then `git show origin/<default>:docs/agents/shipping.md`, where `<default>` comes from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. It sets the base branch, merge method, merge approval, branch naming, CI, Base CI, workers, PR format and post-merge cleanup. If the default branch lacks the file, stop and tell the user to run `setup-ship-tickets` and merge the PR it opens.
 3. Resolve the **ticket set**: the issue numbers from the arguments, in the order the user gave them, or, with none, every open issue labelled `ready-for-agent`, lowest number first.
 4. Resolve the **merge approval**, `ask` or `auto`: the override from the arguments when the user gave one, otherwise the **Merge approval** field in `shipping.md`. A file without the field means `ask`.
 5. Resolve the **worker agents** from the **Workers** field in `shipping.md`: one Orca agent id for each role: implement, PR and fix. A single id applies to all three roles, and a role the field leaves out gets `claude`. A file without the field means `claude` for all roles.
@@ -13,9 +13,20 @@ You are the **coordinator**: you own the ticket order, the CI wait and the merge
    - **current** or **unknown**: say it in one line, with the running version whenever you read it, and go on: `ship-tickets 0.9.0`, `ship-tickets 0.9.0, latest release unknown: gh api failed`, or `ship-tickets: version unknown, no plugin.json`.
    - **older**: show the user both versions and the update command, and ask them to pick one and wait for the answer, even with Merge approval `auto`, since what the run does depends on the version; if your harness has a structured question tool, use it. **Stop** (offered first) stops before the first ticket, for the user to update and start a new session. **Go on** runs the loop as this older version. If no one can answer, as in a non-interactive run where a question gets no reply, don't ask: stop before the first ticket, with both versions and the update command.
 7. Check that the implement agent will load Matt Pocock's `tdd` and `code-review`: run the provenance check in `skill-provenance.md`, in this skill's own folder, for that agent. On a fail, stop before the first ticket and report the skill and its path. Keep the resolved folders: each ticket's step 3 (Implement worker) compares the worker's report with them.
-8. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
+8. Check the base branch's **Base CI**, the CI runs that pushes to it start, unless `shipping.md` sets **Base CI** to `none`. A file without the field means `wait`. The field is independent of **CI**: `CI: none` still checks here. Read the push runs of the base branch's head commit, `<sha>` from `git rev-parse origin/<base>`:
 
-Done when the guide is loaded, `shipping.md` is read, the ticket set is an ordered list of numbers, the merge approval is `ask` or `auto`, each worker role has an agent id, the version check has a result and, when older, the user's answer, `tdd` and `code-review` each have a resolved folder, and a Run is bound.
+   ```text
+   gh run list --commit <sha> --event push --json databaseId,workflowName,status,conclusion,url,createdAt
+   ```
+
+   Only the latest run of each workflow counts, since a commit pushed again starts new runs. If any of them is still running, wait for it as the per-ticket **Base CI** step (step 8 under "For each ticket") does. If that commit started none, take the latest completed push run of each workflow on the branch instead, from `gh run list --branch <base> --event push --status completed --limit 50` with the same `--json`.
+
+   A run is red when its conclusion is `failure`, `timed_out` or `startup_failure`. Its **failed jobs** are the jobs whose conclusion is `failure` or `timed_out`, from `gh run view <id> --json jobs`. Name each by its workflow and its job, the matrix combination included, such as `CI / test (ubuntu, 2.30)`. A run that couldn't start has no jobs: name its workflow alone. Keep the result for the final report. By the result:
+   - **Green**, or **no runs** at all: say it in one line and go on: `Base CI on main: green` or `Base CI on main: no runs`.
+   - **Red**: show the user the failed jobs and the run links, and ask them to pick one and wait for the answer, even with Merge approval `auto`, since every ticket would build on a red base and its failures would be hard to tell from new ones; if your harness has a structured question tool, use it. **Stop** (offered first) stops before the first ticket. **Go on** runs the loop and records each failed job as a **known failure**: it was already failing before the first ticket, and the user chose to ship on top of it. If no one can answer, as in a non-interactive run where a question gets no reply, don't ask: stop before the first ticket, with the failed jobs and the run links.
+9. Bind one Run for the whole session: `orca orchestration run-create --objective "Ship tickets #a, #b, …" --json`.
+
+Done when the guide is loaded, `shipping.md` is read, the ticket set is an ordered list of numbers, the merge approval is `ask` or `auto`, each worker role has an agent id, the version check has a result and, when older, the user's answer, `tdd` and `code-review` each have a resolved folder, the Base CI check has a result (green, no runs, skipped with `none`, or red) and, when red, the user's answer and the known failures, and a Run is bound.
 
 ## For each ticket
 
@@ -144,7 +155,22 @@ Once merged, confirm the merge closed the ticket: `gh issue view <n> --json stat
 2. `orca worktree rm --worktree issue:<n> --json`. This also deletes the local branch once Orca can prove it merged. Run it as a command of its own, with nothing chained before or after it, and write out the `orca` executable from "Before the first ticket" rather than a variable that holds it, so the harness's permission check sees what runs. If the harness's permission check refuses it (a permission denial, as opposed to an error from Orca), leave the worktree in place and carry on: keep the exact command for the final report, for the user to run.
 3. `orca orchestration worker-list --run <run_id> --terminal-state reclaimable --json` returns no rows.
 
-Done when the PR is merged, the ticket is closed, the **After merge** step is done or was refused or failed and kept for the final report, the worktree is removed or its removal was refused, and no worker is left reclaimable. Then go back to step 1.
+Done when the PR is merged, the ticket is closed, the **After merge** step is done or was refused or failed and kept for the final report, the worktree is removed or its removal was refused, and no worker is left reclaimable. Then go to step 8.
+
+### 8. Base CI
+
+The PR's checks can be green while the merge turns the base branch red: a repo can run a wider set of jobs on a push to the base branch than on its PRs. If `shipping.md` sets **Base CI** to `none`, go back to step 1. A file without the field means `wait`, whatever **CI** says. Otherwise wait for the merge commit's push runs in two parts:
+
+1. **Runs listed.** Take the merge commit from `gh pr view <pr> --json mergeCommit --jq .mergeCommit.oid`, then run `gh run list --commit <sha> --event push --json databaseId,workflowName,status,conclusion,url,createdAt` about every 30 seconds until it lists a run. If it lists none within 2 minutes, go back to step 1, and keep for the final report that this merge started no Base CI run: the push may be filtered by `paths` or `paths-ignore`, or the repo has no Base CI.
+2. **Runs settled.** Wait until every run listed has completed, with no time cap: `gh run watch <id> --interval 30` for each run still running, as step 5 waits on the PR's checks. If your harness notifies you when a background command exits, run it in the background: in Claude Code, with the Bash tool's `run_in_background`, then wait for the notification that it exited. Otherwise run it in the foreground, and if it times out, run it again until it exits; it is safe to rerun. Once they have all completed, list the runs again: a workflow can start its run after the others, so wait for any new one too.
+
+Then read the result as step 8 of "Before the first ticket" does: only the latest run of each workflow counts, and the failed jobs come from `gh run view <id> --json jobs`. Update the known failures first: a known failure whose job passed in these runs leaves the list, so if it fails again later it counts as new. A known failure whose job didn't run here stays.
+
+- **Green**: go back to step 1.
+- **Failed jobs that are all known failures**: they were already failing, so go back to step 1. Keep them for the final report.
+- **A failed job that is not a known failure**: stop the loop, with the failed jobs and the run links. The PR stays merged and the ticket closed. Post no comment on the PR or the ticket, revert nothing and reopen nothing: the user decides whether to fix the base branch or revert the merge.
+
+Done when the merge commit's runs have all completed and the result is kept for the final report, or no run was listed within 2 minutes, or **Base CI** is `none`.
 
 ## Stopping
 
@@ -155,13 +181,23 @@ Stop the loop and leave the ticket's worktree and PR exactly as they are when:
 - CI is red after 2 fix workers, or no check starts within 10 minutes;
 - `worker-start` exits non-zero (follow its receipt and the recovery reference, and launch no duplicate);
 - the user picks **Stop** at step 6;
-- the harness refuses a merge the user approved at step 6.
+- the harness refuses a merge the user approved at step 6;
+- a merge's Base CI has a failed job that is not a known failure, at step 8. The PR is already merged and the ticket closed, and step 7 has cleaned up, so nothing is left behind.
 
 ## Final report
 
-Start with the version of the loop that ran, from the version check before the first ticket: the running version whenever you read it, plus the latest release and the update command when it is older, and what couldn't be read and why. A retro then knows which loop ran.
+Start with the version of the loop that ran, from the version check before the first ticket: the running version whenever you read it, plus the latest release and the update command when it is older, and what couldn't be read and why. A retro then knows which loop ran. Next to it, the result of the Base CI check before the first ticket: green, no runs, skipped (`Base CI: none`), or red, with the failed jobs, the run links, and the user's **Go on** with the known failures it recorded, or the stop.
 
-Per ticket in the set: **merged** (PR link, whether the user approved a merge the harness refused, the exact **After merge** command for a cleanup the harness refused, the command and its output for a cleanup that failed, and the `worktree rm` command for any removal the harness refused), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it, the failed provenance check, or a stop to update an older version). For a merged or stopped ticket, also list each follow-up sent back at step 3 and how it was resolved: fixed, kept as pre-existing with the worker's reason, or unresolved because the loop stopped. Whether each kept follow-up was opened or folded comes after the report, at the **Link** step of "Follow-ups".
+Per ticket in the set: **merged** (PR link, its Base CI result, whether the user approved a merge the harness refused, the exact **After merge** command for a cleanup the harness refused, the command and its output for a cleanup that failed, and the `worktree rm` command for any removal the harness refused), **stopped** (step, evidence, what the user needs to do), or **not started** (the blockers holding it, the failed provenance check, a stop to update an older version, a stop on a red base branch, or a merge before it whose Base CI went red). For a merged or stopped ticket, also list each follow-up sent back at step 3 and how it was resolved: fixed, kept as pre-existing with the worker's reason, or unresolved because the loop stopped. Whether each kept follow-up was opened or folded comes after the report, at the **Link** step of "Follow-ups".
+
+A merged ticket's Base CI result is one of:
+
+- **green**, with the run links;
+- **red**, with the failed jobs and the run links, each marked new or known failure. With a new one, say that the loop stopped there and that the PR stays merged, for the user to fix the base branch or revert the merge. With known failures only, say that the loop went on;
+- **no run**: no push run was listed within 2 minutes of the merge. Say that `Base CI: none` in `shipping.md`, or running `setup-ship-tickets` again, removes that wait when the repo runs no CI on push to the base branch;
+- **skipped**: `Base CI: none`.
+
+When the run had known failures, say that those jobs were already failing on the base branch before the first ticket, and that a ticket's new breakage of the same job can't be told apart from them.
 
 If the harness refused a cleanup, also say that turning on GitHub's "Automatically delete head branches" setting and running `setup-ship-tickets` again removes the step: GitHub then deletes the branch on merge, and **After merge** becomes "nothing".
 

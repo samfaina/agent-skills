@@ -74,7 +74,7 @@ Label the ones that are ready `ready-for-agent`, or pass issue numbers to the sk
 /ship-tickets
 ```
 
-With **Merge approval** set to `ask`, the default, the loop stops after CI goes green on each PR. It shows you the PR link, title and size, and asks you to **Merge**, **Request changes** (a fix worker takes your notes, then CI runs again) or **Stop**. Once you trust the loop on a repo, set `Merge approval: auto` in `shipping.md` and it merges as soon as CI is green.
+With **Merge approval** set to `ask`, the default, the loop stops once the checks of each PR are green. It shows you the PR link, title and size, and asks you to **Merge**, **Request changes** (a fix worker takes your notes, then CI runs again) or **Stop**. Once you trust the loop on a repo, set `Merge approval: auto` in `shipping.md` and it merges as soon as the PR's checks are green.
 
 A first word of `ask` or `auto` overrides the field for one run, and issue numbers pick the tickets:
 
