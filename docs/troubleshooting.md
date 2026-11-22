@@ -59,6 +59,20 @@ Two fix workers couldn't get CI green. The PR stays open with the last attempt. 
 
 No check started within 10 minutes of a push to the PR. If no checks run on PRs in this repo, set `CI: none` in `shipping.md` (see the [reference](shipping-md#why-ci-none-exists)). Otherwise, check that your workflows trigger on `pull_request` for the base branch.
 
+## The base branch is red before the first ticket
+
+The Base CI runs on the base branch's last commit failed before the loop started, so every ticket would build on a red base, and its failures would be hard to tell from new ones. The coordinator shows the failed jobs and the run links and asks whether to go on or stop, even with Merge approval `auto`. In a run where no one can answer, it stops there.
+
+Pick **Stop** to fix the base branch first, then run the skill again. Pick **Go on** to ship anyway: the failed jobs become known failures, which don't stop the loop after a merge while they keep failing. A ticket that breaks one of those jobs in a new way goes unnoticed, and the final report says so.
+
+## The loop stopped after a merge turned the base branch red
+
+The PR's checks were green, but the push runs of its merge commit failed on a job that wasn't already failing, as when the repo runs a wider set of jobs on the base branch than on PRs. The PR stays merged and the ticket closed. The final report gives the failed jobs and the run links. Read the failure (`gh run view <run-id> --log-failed`), then fix the base branch or revert the merge, and run the skill again for the tickets that are left.
+
+## The loop waits 2 minutes after each merge
+
+**Base CI** is `wait`, which is also what a `shipping.md` without the field gets, and no CI ran on push to the base branch, so the coordinator waited for a run that never came. The final report marks the merge **no run**. If the repo runs no CI on push, set `Base CI: none` in `shipping.md`, or run `/setup-ship-tickets` again, which sets it from your workflows' `push` triggers. If the run was only filtered by `paths`, the wait is expected.
+
 ## A worker couldn't be started
 
 `worker-start` failed. The coordinator follows Orca's recovery guide and doesn't launch a duplicate. Check that Orca is running, that the session is in an Orca terminal, and that the agent id in **Workers** is one `orca orchestration worker-start --help` lists. Then run the skill again.
@@ -69,7 +83,7 @@ On Windows, `orca` resolved to `orca.cmd`, which cuts a multi-line spec at its f
 
 ## The loop asks before every merge
 
-**Merge approval** is `ask`, which is also what a `shipping.md` without the field gets. To merge as soon as CI is green, set `Merge approval: auto` in `shipping.md`, or run `/ship-tickets auto` for one run.
+**Merge approval** is `ask`, which is also what a `shipping.md` without the field gets. To merge as soon as the PR's checks are green, set `Merge approval: auto` in `shipping.md`, or run `/ship-tickets auto` for one run.
 
 ## The loop asks before a merge with Merge approval `auto`
 

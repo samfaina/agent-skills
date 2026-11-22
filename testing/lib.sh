@@ -84,6 +84,16 @@ latest_release() {
     repos/samfaina/agent-skills/contents/.claude-plugin/plugin.json --jq .version
 }
 
+# Prints the id of each failed Base CI run, one per line, from the JSON of
+# `gh run list --commit <sha> --event push --json
+# databaseId,workflowName,conclusion,status,createdAt` on stdin: a run that
+# failed, timed out or couldn't start. Only the latest run of each workflow
+# counts: a commit pushed again, as a sandbox reset pushes `baseline`, gets a
+# new run, and its result replaces the one before.
+failed_runs() {
+  js 'Object.values(d.reduce((latest, r) => { const l = latest[r.workflowName]; if (!l || r.createdAt > l.createdAt) latest[r.workflowName] = r; return latest; }, {})).filter((r) => ["failure", "timed_out", "startup_failure"].includes(r.conclusion)).map((r) => r.databaseId)'
+}
+
 # Prints <path> as the coordinator's harness takes it: a drive-letter path
 # on Windows, where Git Bash's /c/... means nothing to claude.exe.
 native_path() {

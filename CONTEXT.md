@@ -17,8 +17,16 @@ A fresh agent that Orca starts for a single job on one ticket, in any harness.
 _Avoid_: subagent, child agent
 
 **Merge approval**:
-Whether the coordinator asks the user before each merge (`ask`) or merges as soon as CI is green (`auto`). Set per repo, overridable per run.
+Whether the coordinator asks the user before each merge (`ask`) or merges as soon as the PR's checks are green (`auto`). Set per repo, overridable per run.
 _Avoid_: reviewed mode, auto-merge mode
+
+**Base CI**:
+The CI runs that each push to the base branch starts, such as the one a merge commit starts, as opposed to the checks that run on a PR. A repo can run a wider set of jobs there than on its PRs, so a PR whose checks are green can still turn the base branch red.
+_Avoid_: post-merge CI, main CI, push checks
+
+**Known failure**:
+A Base CI job that was already failing on the base branch before the first ticket, which the user chose to ship on top of. It stays known until it passes once; a ticket that breaks it in a new way can't be told apart from it.
+_Avoid_: pre-existing failure, expected failure, flaky job
 
 **External PR**:
 A PR whose head branch lives in another repo, such as a fork, or that belongs to a repo other than the one being shipped from. A PR from a collaborator's fork counts.

@@ -2,7 +2,7 @@
 # Creates and resets the sandbox repo for TESTING.md.
 #
 #   sandbox.sh create <owner/repo>
-#   sandbox.sh reset <owner/repo> [--workers '<Workers value>'] [--no-shipping-md]
+#   sandbox.sh reset <owner/repo> [--workers '<Workers value>'] [--no-shipping-md] [--base-ci-red]
 #   sandbox.sh old-install <owner/repo> [--remove]
 set -euo pipefail
 
@@ -11,7 +11,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 
 usage() {
   echo "usage: sandbox.sh create <owner/repo>" >&2
-  echo "       sandbox.sh reset <owner/repo> [--workers '<Workers value>'] [--no-shipping-md]" >&2
+  echo "       sandbox.sh reset <owner/repo> [--workers '<Workers value>'] [--no-shipping-md] [--base-ci-red]" >&2
   echo "       sandbox.sh old-install <owner/repo> [--remove]" >&2
   exit 1
 }
@@ -25,11 +25,12 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 reset() {
-  local workers='' no_shipping_md=false
+  local workers='' no_shipping_md=false base_ci_red=false
   while [ $# -gt 0 ]; do
     case $1 in
       --workers) [ $# -ge 2 ] || usage; workers=$2; shift 2 ;;
       --no-shipping-md) no_shipping_md=true; shift ;;
+      --base-ci-red) base_ci_red=true; shift ;;
       *) usage ;;
     esac
   done
@@ -39,6 +40,16 @@ reset() {
     gh pr close "$pr" --repo "$repo" --comment "Closed by sandbox reset." >/dev/null 2>&1
     echo "  closed #$pr"
   done
+
+  # The push-only job in CI fails while BASE_CI_RED is set. The reset unsets
+  # it, so its own push, if any, runs green, unless --base-ci-red sets it
+  # again to turn that push red.
+  echo "Unsetting the BASE_CI_RED variable"
+  gh variable delete BASE_CI_RED --repo "$repo" >/dev/null 2>&1 || true
+  if $base_ci_red; then
+    gh variable set BASE_CI_RED --repo "$repo" --body all >/dev/null
+    echo "  then set it to all, so every push run of main fails"
+  fi
 
   echo "Resetting main to the baseline tag"
   rm -rf "$work/reset"
@@ -57,6 +68,11 @@ reset() {
       git rm --quiet --ignore-unmatch docs/agents/shipping.md .claude/settings.json .claude/hooks/merge-hook.sh
       git commit --quiet -m "Remove shipping.md and the merge hook for a setup test run"
       echo "  removed docs/agents/shipping.md, .claude/settings.json and the merge hook"
+    fi
+    if $base_ci_red; then
+      # A new commit, so the push starts a run, which BASE_CI_RED fails.
+      git commit --quiet --allow-empty -m "Turn Base CI red for this test run"
+      echo "  added an empty commit, whose push run fails"
     fi
     git push --quiet --force origin main
 

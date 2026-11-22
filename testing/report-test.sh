@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Tests how run.sh and verify.sh read the coordinator's output: lib.sh's
 # transcript, on a Claude Code and an OpenCode event log, unlinked_prs,
-# gives_command, issues_opened, comments_posted, version_regex and
-# plugin_version_regex.
+# gives_command, issues_opened, comments_posted, version_regex,
+# plugin_version_regex and failed_runs.
 # No network, no Orca, no coordinator.
 #
 #   report-test.sh
@@ -181,6 +181,32 @@ check "version_regex: the version, not a longer one" "yes no no" \
   "$(matches "$(version_regex 0.0.1)" 'ship-tickets 0.0.1, latest 0.9.0') $(matches "$(version_regex 0.0.1)" '10.0.1') $(matches "$(version_regex 0.0.1)" '0.0.10')"
 check "plugin_version_regex: nothing without an enabled install" '' \
   "$(echo '[{"id": "agent-skills@samfaina", "version": "0.9.0", "enabled": false}]' | plugin_version_regex)"
+
+# Base CI: the push runs of one commit, from `gh run list --json
+# databaseId,workflowName,conclusion,status,createdAt`, newest last here so
+# the order of the list doesn't decide. CI failed, then passed when the commit
+# was pushed again; Lint's only run failed.
+cat > "$work/runs.json" <<'EOF'
+[
+  {"databaseId": 11, "workflowName": "CI", "status": "completed", "conclusion": "failure", "createdAt": "2026-11-17T10:00:00Z"},
+  {"databaseId": 12, "workflowName": "Lint", "status": "completed", "conclusion": "failure", "createdAt": "2026-11-17T10:00:05Z"},
+  {"databaseId": 13, "workflowName": "CI", "status": "completed", "conclusion": "success", "createdAt": "2026-11-17T10:05:00Z"}
+]
+EOF
+check "failed_runs: the latest run of each workflow, when it failed" '12' \
+  "$(failed_runs < "$work/runs.json")"
+# GitHub shows a run that timed out or couldn't start red too, unlike one
+# cancelled or still running.
+cat > "$work/red-kinds.json" <<'EOF'
+[
+  {"databaseId": 21, "workflowName": "A", "status": "completed", "conclusion": "timed_out", "createdAt": "2026-11-17T10:00:00Z"},
+  {"databaseId": 22, "workflowName": "B", "status": "completed", "conclusion": "startup_failure", "createdAt": "2026-11-17T10:00:00Z"},
+  {"databaseId": 23, "workflowName": "C", "status": "completed", "conclusion": "cancelled", "createdAt": "2026-11-17T10:00:00Z"},
+  {"databaseId": 24, "workflowName": "D", "status": "in_progress", "conclusion": "", "createdAt": "2026-11-17T10:00:00Z"}
+]
+EOF
+check "failed_runs: a run that timed out or couldn't start failed too" "$(printf '21\n22')" \
+  "$(failed_runs < "$work/red-kinds.json")"
 
 [ "$failures" = 0 ] || { echo "$failures failed" >&2; exit 1; }
 echo "PASS"

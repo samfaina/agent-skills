@@ -2,7 +2,7 @@
 
 Run this checklist before each release. It ships real tickets in a throwaway sandbox repo with each supported harness as the coordinator and as the workers.
 
-Most of it runs unattended: `testing/run.sh` starts the coordinator, waits for it, and checks the result. You run four cases by hand, the ones where the coordinator asks you questions: fresh setup in each harness (1.1, 1.2), the version question with an older install (2.1), and the `ask` run of the loop (3.1).
+Most of it runs unattended: `testing/run.sh` starts the coordinator, waits for it, and checks the result. You run five cases by hand, the ones where the coordinator asks you questions: fresh setup in each harness (1.1, 1.2), the version question with an older install (2.1), the question about a red base branch (2.2), and the `ask` run of the loop (3.1).
 
 For each release, open an issue titled `Release test: <version>`, paste this checklist into it, and tick it off there. Every failure gets its own issue, linked from that one.
 
@@ -12,7 +12,8 @@ For each release, open an issue titled `Release test: <version>`, paste this che
 
 - Ticket #2 is blocked by #3, so a full run ships them in the order #1, #3, #2, #4.
 - `.claude/` holds the merge hook `/setup-ship-tickets` adds for Merge approval `auto`. `sandbox.sh create` copies its script from `skills/setup-ship-tickets/`.
-- CI has two checks, `test` and `changelog`. `changelog` fails any PR that adds no line to `CHANGELOG.md`. The sandbox's `AGENTS.md` doesn't mention it, but the implement worker's code review usually catches it, so a PR rarely goes red by itself.
+- CI has two checks on PRs, `test` and `changelog`. `changelog` fails any PR that adds no line to `CHANGELOG.md`. The sandbox's `AGENTS.md` doesn't mention it, but the implement worker's code review usually catches it, so a PR rarely goes red by itself.
+- A push to `main` runs CI too, the loop's **Base CI**: `test`, and `push-only`, a job PRs never run. So every loop run waits for a green Base CI before the first ticket and after each merge. `push-only` passes unless the repo variable `BASE_CI_RED` is set: `all` fails every run, and a commit sha fails every run but that commit's.
 
 Run the scripts in bash (Git Bash on Windows), from this repo, with `gh` logged in. Below, `<sandbox>` is the repo you create, such as `<you>/ship-tickets-sandbox`.
 
@@ -22,13 +23,13 @@ Run the scripts in bash (Git Bash on Windows), from this repo, with `gh` logged 
 bash testing/sandbox.sh create <sandbox>
 ```
 
-**Reset** before every run by hand. `run.sh` resets on its own. It closes open PRs, force-pushes `main` back to `baseline`, deletes every other branch, turns off **Automatically delete head branches**, and reopens the four tickets as they were, comments deleted.
+**Reset** before every run by hand. `run.sh` resets on its own. It closes open PRs, unsets `BASE_CI_RED`, force-pushes `main` back to `baseline`, deletes every other branch, turns off **Automatically delete head branches**, and reopens the four tickets as they were, comments deleted.
 
 ```bash
-bash testing/sandbox.sh reset <sandbox> [--workers '<value>'] [--no-shipping-md]
+bash testing/sandbox.sh reset <sandbox> [--workers '<value>'] [--no-shipping-md] [--base-ci-red]
 ```
 
-`--workers` writes its value into the **Workers** field of `shipping.md` for that run. `--no-shipping-md` removes the file and the merge hook, to test setup from scratch. After a reset, remove the Orca worktrees the last run left, and reset your clone to `origin/main`. The script prints both commands.
+`--workers` writes its value into the **Workers** field of `shipping.md` for that run. `--no-shipping-md` removes the file and the merge hook, to test setup from scratch. `--base-ci-red` sets `BASE_CI_RED` to `all` and adds an empty commit to `main`, whose push run fails, so the base branch is red before the run. After a reset, remove the Orca worktrees the last run left, and reset your clone to `origin/main`. The script prints both commands.
 
 To change the fixture or the tickets, edit `testing/` in this repo. The next `create` picks the change up. A new ticket is a file `tickets/<n>.md`, numbered after the last one, whose first line is `# <title>` and whose body starts on the third line.
 
@@ -125,7 +126,8 @@ For a loop run, `verify.sh` checks that:
 - one PR's `changelog` check failed and then passed, so a fix worker ran;
 - the run opened no issue besides the sandbox's tickets, and posted no comment on an issue but the loop's `Shipped in #<pr>`: the coordinator opens or folds a follow-up only on your answer, and an unattended run has no one to give it;
 - no Orca worktree is left for the sandbox, and the run left no reclaimable worker;
-- the coordinator's last message links each merged PR as `/pull/<n>`, in any language; a link in an earlier message doesn't count.
+- the coordinator's last message links each merged PR as `/pull/<n>`, in any language; a link in an earlier message doesn't count;
+- in a run that stops on a red Base CI (`red-base` and `red-after-merge`), the commit it stopped on has a failed push run, the last message links each one as `/actions/runs/<id>` and names the `push-only` job, and, after a merge, the run opened no PR for the next ticket.
 
 So that a fix worker always runs, `run.sh` forces one PR red: once the first ticket's PR opens, it pushes a commit that drops the PR's `CHANGELOG.md` line.
 
@@ -133,7 +135,7 @@ A run that has to stop before its first ticket passes when no PR and no worktree
 
 You can also run `verify.sh` on its own after a run, with the tickets in the order they must merge: `bash testing/verify.sh <sandbox> 1 3 2 4`. It checks the last message only with `--report <run>-<time>.report.txt`.
 
-`bash testing/report-test.sh` tests how `run.sh` and `verify.sh` read the coordinator's output, with no network: the said, ran and report files from a Claude Code and an OpenCode event log, the check that the report links each PR, the check that it gives a refused cleanup's command, the checks that the run opened no issue and posted no comment on one, and the regex `run.sh` matches the version of the loop against.
+`bash testing/report-test.sh` tests how `run.sh` and `verify.sh` read the coordinator's output, with no network: the said, ran and report files from a Claude Code and an OpenCode event log, the check that the report links each PR, the check that it gives a refused cleanup's command, the checks that the run opened no issue and posted no comment on one, the regex `run.sh` matches the version of the loop against, and how `verify.sh` picks the failed Base CI runs of a commit.
 
 ## 1. Setup
 
@@ -219,6 +221,7 @@ Each run breaks one thing, runs a skill in Claude Code, and restores the thing a
 - [ ] **An older install.** `bash testing/run.sh <sandbox> old-install` copies this checkout's skills to a temporary folder as the plugin `agent-skills-old` with version `0.0.1`, adds that folder as the marketplace `ship-tickets-test`, installs the plugin from it at local scope in the clone, and runs `/agent-skills-old:ship-tickets auto`. The installed `agent-skills` stays as it is. Nobody can answer whether to go on with the older version, so the coordinator stops before the first ticket, even with Merge approval `auto`. It names `0.0.1`, the latest release's version from `.claude-plugin/plugin.json` on `main`, and the update command `claude plugin update agent-skills-old@ship-tickets-test --scope local`. When the run ends, `run.sh` uninstalls the plugin, removes the marketplace and its copy in the plugin cache, and puts back the clone's `.claude/settings.local.json` as it was.
 - [ ] **An older copy no install manages.** `bash testing/run.sh <sandbox> old-plugin-dir` loads the same copy with `claude --plugin-dir` instead, for the run's session only. The coordinator stops the same way and names both versions. `claude plugin list` has no entry for that copy, so there is no update command to give: the coordinator says to update the copy at the plugin root instead.
 - [ ] **Blocked ticket.** `bash testing/run.sh <sandbox> blocked` runs `/ship-tickets auto 2`: it stops before starting a worker and reports that #3 holds #2.
+- [ ] **A red base branch.** `bash testing/run.sh <sandbox> red-base` resets with `--base-ci-red`, so `main`'s push run fails on `push-only`, waits until GitHub lists that run, and runs `/ship-tickets auto`. Nobody can answer whether to go on, so the coordinator stops before the first ticket, even with Merge approval `auto`, after reading the push runs with `gh run list --commit`, and its last message names `push-only` and links the failed run. When the run ends, `run.sh` unsets `BASE_CI_RED`.
 
 ### 2.1 by hand: the version question
 
@@ -246,6 +249,16 @@ bash testing/sandbox.sh old-install <sandbox> --remove
 
 - [ ] `claude plugin list` in the clone shows no `agent-skills-old`, and `git status --porcelain` in the clone prints nothing.
 
+### 2.2 by hand: Go on with a red base branch
+
+`red-base` only shows that the coordinator stops. This case answers its question and ships on top of a known failure. Reset with `--base-ci-red`, then run `/ship-tickets auto 1 3` in Claude Code, in an Orca terminal in the clone.
+
+- [ ] Before it binds a Run, the coordinator asks with `AskUserQuestion`. The question names `push-only`, links the failed run, and offers **Stop** first. Merge approval `auto` doesn't skip it.
+- [ ] Pick **Go on**. #1 and #3 ship. After each merge the coordinator waits for the merge commit's push runs, `push-only` fails again, and the loop goes on: it is a known failure.
+- [ ] The final report gives the red check before the first ticket and your **Go on** next to the version, gives each merged ticket's Base CI result as red on the known failure `push-only` with its run link, and says that `push-only` was already failing before the first ticket and that a ticket's new breakage of that job can't be told apart from it.
+
+Reset the sandbox afterwards, which unsets `BASE_CI_RED`.
+
 ## 3. The loop
 
 One run per row of the harness matrix. Each run ships all four tickets unless the row says otherwise.
@@ -261,15 +274,16 @@ One run per row of the harness matrix. Each run ships all four tickets unless th
 - [ ] 3.3 passes.
 - [ ] 3.4 passes.
 - [ ] `bash testing/run.sh <sandbox> auto-mode` passes. It runs `/ship-tickets auto 1` in Claude Code with permission checks on (`--permission-mode auto`), where every other Claude Code run skips them. Auto mode refuses a merge no human approved, and the sandbox has no allow rule, so the run merges only if the merge hook approves it, which needs the plain command run on its own. `run.sh` checks that the coordinator ran it with the Bash tool, as the loop says, and ran the **After merge** step `git push origin --delete <branch>` on its own with the Bash tool too. Auto mode may refuse that deletion. The run passes either way: with the branch deleted, or with the branch left and the last message giving the command and naming `setup-ship-tickets`. Write in the case's result which one happened.
+- [ ] `bash testing/run.sh <sandbox> red-after-merge` passes. It sets `BASE_CI_RED` to `main`'s head, so the check before the first ticket sees `main` green and every later push run fails, and runs `/ship-tickets auto 1 3`. #1's PR checks pass, since PRs never run `push-only`, but its merge turns `main` red. The coordinator stops before #3 starts: #1 stays merged and closed, no PR closes #3, and the last message names `push-only` and links the failed run. When the run ends, `run.sh` unsets `BASE_CI_RED`.
 - [ ] `bash testing/run.sh <sandbox> order` passes. It runs `/ship-tickets auto 2 3 1` in Claude Code, or in OpenCode with `--coordinator opencode`, and the tickets must merge in the order #3, #2, #1: the numbers set the order, #2 waits until #3 is closed, and then it ships ahead of #1. Lowest-numbered first would merge #1, #3, #2.
 
-Besides `verify.sh`'s checks, `run.sh` checks the commands each coordinator ran: it bound a Run and started workers with the agents Workers names (`--agent claude`, plus `--agent opencode` in 3.3). In a run whose coordinator is Claude Code, the last message must also name the version of the `agent-skills` plugin `claude plugin list --json` shows enabled, as the version of the loop that ran. An OpenCode coordinator's copy, from `npx skills add`, has no `plugin.json`, so its version is unknown and the run doesn't check it. In 3.4 it also checks that the coordinator resolved `orca` with `Get-Command`, which finds `orca.exe` before `orca.cmd`, and passed the specs as single-quoted here-strings: the two things that get a spec to a worker intact on Windows.
+Besides `verify.sh`'s checks, `run.sh` checks the commands each coordinator ran: it bound a Run, read a commit's push runs with `gh run list --commit` for Base CI, and started workers with the agents Workers names (`--agent claude`, plus `--agent opencode` in 3.3). In a run whose coordinator is Claude Code, the last message must also name the version of the `agent-skills` plugin `claude plugin list --json` shows enabled, as the version of the loop that ran. An OpenCode coordinator's copy, from `npx skills add`, has no `plugin.json`, so its version is unknown and the run doesn't check it. In 3.4 it also checks that the coordinator resolved `orca` with `Get-Command`, which finds `orca.exe` before `orca.cmd`, and passed the specs as single-quoted here-strings: the two things that get a spec to a worker intact on Windows.
 
 ### 3.1 by hand: Merge approval `ask`
 
 Reset with ``--workers '`opencode` (all roles)'``, and run `/ship-tickets` in Claude Code.
 
-- [ ] Before the first ticket: the coordinator says in one line which version of the loop runs, such as `ship-tickets 0.9.0`, without asking anything, the provenance check passes for the implement agent, and one Run is bound.
+- [ ] Before the first ticket: the coordinator says in one line which version of the loop runs, such as `ship-tickets 0.9.0`, and in another that Base CI on `main` is green, without asking anything, the provenance check passes for the implement agent, and one Run is bound.
 - [ ] Tickets ship in the order #1, #3, #2, #4. #2 waits until #3 is closed.
 - [ ] Each worktree's name follows Branch naming in `shipping.md`.
 - [ ] Each worker starts in OpenCode. Check the agent of each worker terminal in Orca.
@@ -278,7 +292,7 @@ Reset with ``--workers '`opencode` (all roles)'``, and run `/ship-tickets` in Cl
 - [ ] The coordinator waits for the checks to appear, then runs the watch in the background until they finish.
 - [ ] Before each merge, `AskUserQuestion` shows the PR URL, title and size and offers Merge, Request changes and Stop.
 - [ ] On one ticket, pick **Request changes** with a note that also asks for two things clearly out of its scope (such as "add a test for an empty string, add a `reverse(text)` function to `src/index.js`, and add a `capitalize(text)` function to `src/index.js`"). A fix worker (task title `#<n> fix`) applies the part in scope, adds no `reverse` and no `capitalize`, CI runs again, and the coordinator asks again.
-- [ ] After each merge: the PR is squash-merged, the issue is closed, the remote branch is deleted, the worktree is removed, and `worker-list --terminal-state reclaimable` returns no rows.
+- [ ] After each merge: the PR is squash-merged, the issue is closed, the remote branch is deleted, the worktree is removed, `worker-list --terminal-state reclaimable` returns no rows, and the coordinator waits for the merge commit's push runs before the next ticket.
 - [ ] On the last ticket, pick **Stop**. The PR stays open, and the final report starts with the version of the loop that ran, then lists each ticket as merged with its PR link, and the last one as stopped.
 - [ ] The fix worker's out-of-scope requests aren't sent back to it, even though they name `src/index.js`, a file every branch but #2's changes: the coordinator checks only the implement workers' follow-ups.
 - [ ] If an implement worker reports a follow-up that names a file its branch changed, or no file, the coordinator sends it back with `orca orchestration send` before releasing the worker, waits for its new `worker_done`, and the final report says whether the follow-up was fixed or kept as pre-existing, with the worker's reason. Write in the case's result whether a follow-up was sent back.

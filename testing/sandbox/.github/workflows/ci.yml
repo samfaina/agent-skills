@@ -2,6 +2,8 @@ name: CI
 
 on:
   pull_request:
+  push:
+    branches: [main]
 
 jobs:
   test:
@@ -14,6 +16,7 @@ jobs:
       - run: npm test
 
   changelog:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -25,3 +28,19 @@ jobs:
       - run: node scripts/check-changelog.js
         env:
           BASE_REF: ${{ github.base_ref }}
+
+  # Runs only on a push to main, as a repo's wider job set does, so a PR whose
+  # checks are green can still turn main red. The release test turns it red
+  # with the repo variable BASE_CI_RED: `all` fails every run, and a commit
+  # sha fails every run but that commit's.
+  push-only:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          RED: ${{ vars.BASE_CI_RED }}
+        run: |
+          if [ "$RED" = all ] || { [ -n "$RED" ] && [ "$RED" != "$GITHUB_SHA" ]; }; then
+            echo "::error::BASE_CI_RED is $RED, so this run fails"
+            exit 1
+          fi

@@ -96,7 +96,7 @@ nav_order: 1
       <tbody>
         <tr><td class="cmd">/setup-ship-tickets</td><td>Once per repo. Checks the repo is ready and opens a PR with <code>docs/agents/shipping.md</code>, the file the loop reads.</td><td><span class="mode mode--setup">setup</span></td></tr>
         <tr><td class="cmd">/ship-tickets ask <span>[#n…]</span></td><td>To ship tickets and approve each merge yourself, or ask for changes first.</td><td><span class="mode mode--human">you approve</span></td></tr>
-        <tr><td class="cmd">/ship-tickets auto <span>[#n…]</span></td><td>To ship tickets and merge each PR as soon as its CI is green.</td><td><span class="mode mode--auto">on green CI</span></td></tr>
+        <tr><td class="cmd">/ship-tickets auto <span>[#n…]</span></td><td>To ship tickets and merge each PR as soon as its checks are green.</td><td><span class="mode mode--auto">on green checks</span></td></tr>
       </tbody>
     </table>
   </div>

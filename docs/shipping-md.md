@@ -19,10 +19,11 @@ The loop reads the file from the remote default branch, so edits take effect onc
 | --- | --- | --- |
 | **Base branch** | The branch tickets merge into, usually the default branch. | Worktree creation, PR base, CI, merge |
 | **Merge method** | `merge`, `squash` or `rebase`, passed to `gh pr merge --<method>`. Use one your repo settings allow. | Merge |
-| **Merge approval** | `ask` (once CI is green, the loop shows you the PR and waits for **Merge**, **Request changes** or **Stop**) or `auto` (the loop merges as soon as CI is green). A file without this field counts as `ask`. `/ship-tickets ask` or `/ship-tickets auto` overrides it for one run. In Claude Code's auto mode, `auto` also needs the [merge hook](#the-merge-hook-for-claude-codes-auto-mode). | Merge |
+| **Merge approval** | `ask` (once the PR's checks are green, the loop shows you the PR and waits for **Merge**, **Request changes** or **Stop**) or `auto` (the loop merges as soon as the PR's checks are green). A file without this field counts as `ask`. `/ship-tickets ask` or `/ship-tickets auto` overrides it for one run. In Claude Code's auto mode, `auto` also needs the [merge hook](#the-merge-hook-for-claude-codes-auto-mode). | Merge |
 | **Branch naming** | How to turn a ticket into a worktree name, such as the kebab-case issue title. Note any prefix Orca adds to the branch. | Worktree creation |
 | **After merge** | What to do once the PR merges, such as deleting the remote branch with `git push origin --delete <branch>`, or "nothing" when GitHub's "Automatically delete head branches" setting deletes it for you. `/setup-ship-tickets` offers to turn that setting on, which spares the loop a step Claude Code's auto mode may refuse. It offers when it sets this field, and again on each update with Merge approval `auto` while the field deletes the branch. If the harness refuses the step, the ticket still ships and the final report gives you the command ([troubleshooting](troubleshooting#a-merged-tickets-remote-branch-is-still-there)). | Clean up |
 | **CI** | `required` (the loop waits for checks to pass) or `none` (no checks run on PRs, so the loop merges without waiting). A file without this field counts as `required`. | CI |
+| **Base CI** | `wait` (CI runs on each push to the base branch: the loop checks the base branch before the first ticket, waits for each merge commit's runs, and stops when one fails on a job that wasn't already failing) or `none` (the loop does neither). A file without this field counts as `wait`. It doesn't depend on **CI**. `/setup-ship-tickets` sets `wait` when a workflow has a `push` trigger that covers the base branch. See [Base CI](how-it-works#base-ci). | Before the first ticket, Base CI |
 | **Workers** | The Orca agent id each worker starts in, passed to `worker-start --agent`: one id for every role, such as `claude` (all roles), or one per role, such as implement `claude`, PR `opencode`, fix `claude`. A role left out, or a file without this field, gets `claude`. See [Workers](harnesses#workers). | Implement, PR and fix workers |
 | **PR title** | How the PR worker writes the title, such as the issue title, unchanged. | PR |
 | **PR body** | The sections, in order, and what each holds. The loop adds `Closes #<n>` at the end. | PR |
@@ -40,6 +41,7 @@ Read by the `ship-tickets` skill (samfaina/agent-skills).
 - **Branch naming:** kebab-case issue title, prefixed with the issue number: `42-add-csv-export`.
 - **After merge:** nothing (the repo deletes merged branches).
 - **CI:** `required`
+- **Base CI:** `wait`
 - **Workers:** `claude` (all roles)
 
 ## PR format
@@ -86,3 +88,7 @@ To replace it, run `/setup-ship-tickets` and pick **Replace**. It adds the hook 
 ## Why `CI: none` exists
 
 In a repo where no checks run on PRs, waiting for CI never ends well. The loop would wait ten minutes for checks to show up and then stop, because CI is required and none started. `CI: none` skips the wait. The implement worker still runs the full test suite before committing.
+
+## Why `Base CI: none` exists
+
+With `Base CI: wait`, the loop waits up to 2 minutes after each merge for a push run to show up, then goes on without one. In a repo where no CI runs on push to the base branch, `Base CI: none` skips that wait. Use it too when the push runs are the same as the PR's checks, or too slow to wait for between tickets.

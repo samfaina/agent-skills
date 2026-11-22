@@ -8,6 +8,7 @@ Read by the `ship-tickets` skill (samfaina/agent-skills).
 - **Branch naming:** kebab-case issue title, prefixed with the issue number: `3-add-slugify`. Orca may add its own prefix to the branch, such as `samfaina/`.
 - **After merge:** delete the remote branch with `git push origin --delete <branch>`.
 - **CI:** `required`
+- **Base CI:** `wait`
 - **Workers:** `claude` (all roles)
 
 ## PR format
