@@ -151,8 +151,12 @@ wait_for_head_run() {
 reset_args=() coordinator=claude skill=ship-tickets skill_args=auto prepare='' plugin_dir=''
 claude_permissions=(--dangerously-skip-permissions)
 tickets=(1 3 2 4) stopped=false in_orca=true unset_shell=false base_ci_red=false
-# Every loop run reads the push runs of a commit, for Base CI.
-said=() ran=('run-create' 'gh run list .*--commit') cleanup_refusable=false
+# Every loop run reads the push runs of a commit, for Base CI, and checks a
+# merged ticket's remote branch by its full ref, quoted or not, and without
+# --exit-code, whose exit 2 on a missing branch is a failed tool call. The
+# pattern doesn't check that the command ran on its own, or before the deletion.
+said=() ran=('run-create' 'gh run list .*--commit' "git ls-remote origin [\"']?refs/heads/[^ ;&|]")
+cleanup_refusable=false
 case $run in
   3.2) coordinator=opencode ran+=('--agent claude') ;;
   3.3)

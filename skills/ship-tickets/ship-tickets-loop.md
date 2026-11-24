@@ -148,9 +148,13 @@ Once merged, confirm the merge closed the ticket: `gh issue view <n> --json stat
 
 ### 7. Clean up
 
-1. Apply the **After merge** step from `shipping.md`, unless it says "nothing": for example `git push origin --delete <branch>` with the branch from step 2. Run it as a command of its own, with nothing chained before or after it. If your harness has a Bash tool, run it with that tool, even when you run your other commands in PowerShell, as for the merge in step 6. Then, by how it ends:
+1. Apply the **After merge** step from `shipping.md`, unless it says "nothing": for example `git push origin --delete <branch>` with the branch from step 2. When the step deletes the ticket's remote branch, in whatever words `shipping.md` uses, first check that the branch still exists: `git ls-remote origin refs/heads/<branch>`. It only reads, so unlike the deletion it may share a command with other reads. Leave out `--exit-code`: it makes a missing branch exit 2, which the harness shows as a failed command, the very thing this check avoids. Give the full ref, not `--heads <branch>`: `ls-remote` matches a pattern against the end of each ref, so a bare branch name also matches a branch `x/<branch>`, and a deleted branch would pass for a live one. By how the check ends:
+   - **No line for `refs/heads/<branch>` and no error from `ls-remote`**: GitHub already deleted the branch, so the step is done. Run no deletion, and keep for the final report that `shipping.md` deletes a branch GitHub already deletes.
+   - **A line for the ref**, or **any other result** (an error from `ls-remote`, such as a network failure, or the harness refusing the check itself): run the deletion as below.
+
+   Run the **After merge** step as a command of its own, with nothing chained before or after it. If your harness has a Bash tool, run it with that tool, even when you run your other commands in PowerShell, as for the merge in step 6. Then, by how it ends:
    - **The harness's permission check refuses it** (a permission denial, as opposed to an error from `git`): leave it undone and carry on. Keep the exact command for the final report, for the user to run. A refusal doesn't stop the loop or fail the ticket.
-   - **It fails because the remote branch no longer exists** (`git` says the remote ref does not exist): GitHub already deleted it, so the step is done. Report nothing about it.
+   - **It fails because the remote branch no longer exists** (`git` says the remote ref does not exist): GitHub deleted it after the check, so the step is done. Keep for the final report, as for a check with no output, that `shipping.md` deletes a branch GitHub already deletes.
    - **Any other error**: carry on, since the PR is merged and the ticket closed, and keep the command and its output for the final report.
 2. `orca worktree rm --worktree issue:<n> --json`. This also deletes the local branch once Orca can prove it merged. Run it as a command of its own, with nothing chained before or after it, and write out the `orca` executable from "Before the first ticket" rather than a variable that holds it, so the harness's permission check sees what runs. If the harness's permission check refuses it (a permission denial, as opposed to an error from Orca), leave the worktree in place and carry on: keep the exact command for the final report, for the user to run.
 3. `orca orchestration worker-list --run <run_id> --terminal-state reclaimable --json` returns no rows.
@@ -200,6 +204,8 @@ A merged ticket's Base CI result is one of:
 When the run had known failures, say that those jobs were already failing on the base branch before the first ticket, and that a ticket's new breakage of the same job can't be told apart from them.
 
 If the harness refused a cleanup, also say that turning on GitHub's "Automatically delete head branches" setting and running `setup-ship-tickets` again removes the step: GitHub then deletes the branch on merge, and **After merge** becomes "nothing".
+
+If at least one ticket found its remote branch already gone at step 7, say once for the run, not once per ticket, that `shipping.md`'s **After merge** deletes a branch that GitHub's "Automatically delete head branches" setting already deletes, and that running `setup-ship-tickets` again sets **After merge** to "nothing". This is a note: the step counted as done, and nothing failed.
 
 Trouble with the loop itself, such as a worker that failed or a tool the harness refused, goes in this report, never in the follow-ups.
 

@@ -111,7 +111,11 @@ The harness refused the **After merge** step from `shipping.md`. Claude Code's a
 
 To stop it happening, turn on **Automatically delete head branches**. With Merge approval `auto`, run `/setup-ship-tickets` again and pick **Yes** when it offers to turn the setting on. Otherwise, turn it on in the repo's **Settings** → **General** → **Pull Requests**, or with `gh repo edit --delete-branch-on-merge`, then run `/setup-ship-tickets` again. Either way, setup sets **After merge** to "nothing", so the loop has no cleanup left to refuse.
 
-If the final report shows the deletion failed with another error, its output is in the report. A deletion that fails because the branch is already gone isn't reported: GitHub deleted it.
+If the final report shows the deletion failed with another error, its output is in the report.
+
+## The report says `shipping.md` deletes a branch GitHub already deletes
+
+GitHub's **Automatically delete head branches** setting is on, but **After merge** in `shipping.md` still deletes the remote branch. Before each deletion the coordinator checks that the branch still exists, so it found the branch gone, skipped the deletion, and counted the step as done. Nothing failed: the note tells you that the file and the repo setting disagree. Run `/setup-ship-tickets` again: it sets **After merge** to "nothing", and the loop then skips the check too.
 
 ## You chose Stop
 

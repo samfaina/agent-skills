@@ -2,7 +2,7 @@
 
 Run this checklist before each release. It ships real tickets in a throwaway sandbox repo with each supported harness as the coordinator and as the workers.
 
-Most of it runs unattended: `testing/run.sh` starts the coordinator, waits for it, and checks the result. You run five cases by hand, the ones where the coordinator asks you questions: fresh setup in each harness (1.1, 1.2), the version question with an older install (2.1), the question about a red base branch (2.2), and the `ask` run of the loop (3.1).
+Most of it runs unattended: `testing/run.sh` starts the coordinator, waits for it, and checks the result. You run six cases by hand, the ones where the coordinator asks you questions or the check needs you to read the run: fresh setup in each harness (1.1, 1.2), the version question with an older install (2.1), the question about a red base branch (2.2), the `ask` run of the loop (3.1), and a branch GitHub already deleted (3.5).
 
 For each release, open an issue titled `Release test: <version>`, paste this checklist into it, and tick it off there. Every failure gets its own issue, linked from that one.
 
@@ -269,15 +269,16 @@ One run per row of the harness matrix. Each run ships all four tickets unless th
 | 3.2 | `claude` (all roles) | OpenCode | `/ship-tickets auto` | `bash testing/run.sh <sandbox> 3.2` |
 | 3.3 | ``implement `claude`, PR `opencode`, fix `opencode` `` | Claude Code, or OpenCode with `--coordinator opencode` | `/ship-tickets auto` | `bash testing/run.sh <sandbox> 3.3` |
 | 3.4 | `claude` (all roles) | OpenCode on Windows, `SHELL` unset, so it runs `pwsh` | `/ship-tickets auto 3 2` | `bash testing/run.sh <sandbox> 3.4` |
+| 3.5 | `claude` (all roles) | Claude Code, with **Automatically delete head branches** on | `/ship-tickets auto 1 3` | By hand |
 
 - [ ] 3.2 passes.
 - [ ] 3.3 passes.
 - [ ] 3.4 passes.
-- [ ] `bash testing/run.sh <sandbox> auto-mode` passes. It runs `/ship-tickets auto 1` in Claude Code with permission checks on (`--permission-mode auto`), where every other Claude Code run skips them. Auto mode refuses a merge no human approved, and the sandbox has no allow rule, so the run merges only if the merge hook approves it, which needs the plain command run on its own. `run.sh` checks that the coordinator ran it with the Bash tool, as the loop says, and ran the **After merge** step `git push origin --delete <branch>` on its own with the Bash tool too. Auto mode may refuse that deletion. The run passes either way: with the branch deleted, or with the branch left and the last message giving the command and naming `setup-ship-tickets`. Write in the case's result which one happened.
+- [ ] `bash testing/run.sh <sandbox> auto-mode` passes. It runs `/ship-tickets auto 1` in Claude Code with permission checks on (`--permission-mode auto`), where every other Claude Code run skips them. Auto mode refuses a merge no human approved, and the sandbox has no allow rule, so the run merges only if the merge hook approves it, which needs the plain command run on its own. `run.sh` checks that the coordinator ran it with the Bash tool, as the loop says, and ran the **After merge** step `git push origin --delete <branch>` on its own with the Bash tool too. The sandbox has **Automatically delete head branches** off, so the branch check before it prints the branch and the deletion runs. Auto mode may refuse that deletion. The run passes either way: with the branch deleted, or with the branch left and the last message giving the command and naming `setup-ship-tickets`. Write in the case's result which one happened.
 - [ ] `bash testing/run.sh <sandbox> red-after-merge` passes. It sets `BASE_CI_RED` to `main`'s head, so the check before the first ticket sees `main` green and every later push run fails, and runs `/ship-tickets auto 1 3`. #1's PR checks pass, since PRs never run `push-only`, but its merge turns `main` red. The coordinator stops before #3 starts: #1 stays merged and closed, no PR closes #3, and the last message names `push-only` and links the failed run. When the run ends, `run.sh` unsets `BASE_CI_RED`.
 - [ ] `bash testing/run.sh <sandbox> order` passes. It runs `/ship-tickets auto 2 3 1` in Claude Code, or in OpenCode with `--coordinator opencode`, and the tickets must merge in the order #3, #2, #1: the numbers set the order, #2 waits until #3 is closed, and then it ships ahead of #1. Lowest-numbered first would merge #1, #3, #2.
 
-Besides `verify.sh`'s checks, `run.sh` checks the commands each coordinator ran: it bound a Run, read a commit's push runs with `gh run list --commit` for Base CI, and started workers with the agents Workers names (`--agent claude`, plus `--agent opencode` in 3.3). In a run whose coordinator is Claude Code, the last message must also name the version of the `agent-skills` plugin `claude plugin list --json` shows enabled, as the version of the loop that ran. An OpenCode coordinator's copy, from `npx skills add`, has no `plugin.json`, so its version is unknown and the run doesn't check it. In 3.4 it also checks that the coordinator resolved `orca` with `Get-Command`, which finds `orca.exe` before `orca.cmd`, and passed the specs as single-quoted here-strings: the two things that get a spec to a worker intact on Windows.
+Besides `verify.sh`'s checks, `run.sh` checks the commands each coordinator ran: it bound a Run, read a commit's push runs with `gh run list --commit` for Base CI, checked whether a merged ticket's branch still exists with `git ls-remote origin refs/heads/<branch>`, and started workers with the agents Workers names (`--agent claude`, plus `--agent opencode` in 3.3). In a run whose coordinator is Claude Code, the last message must also name the version of the `agent-skills` plugin `claude plugin list --json` shows enabled, as the version of the loop that ran. An OpenCode coordinator's copy, from `npx skills add`, has no `plugin.json`, so its version is unknown and the run doesn't check it. In 3.4 it also checks that the coordinator resolved `orca` with `Get-Command`, which finds `orca.exe` before `orca.cmd`, and passed the specs as single-quoted here-strings: the two things that get a spec to a worker intact on Windows.
 
 ### 3.1 by hand: Merge approval `ask`
 
@@ -302,6 +303,23 @@ Reset with ``--workers '`opencode` (all roles)'``, and run `/ship-tickets` in Cl
 - [ ] The coordinator links the issue it opened for `reverse`, which has the `needs-triage` label, not `ready-for-agent`, and whose body has a `## What happened` and a `## Where` section, no section that sets the fix or its scope, and ends with `Found while shipping #<n> (PR #<pr>)`.
 - [ ] It links the comment it posted on #4 for `capitalize`, written the same way, and opened no issue for it. The body and labels of #4 are as they were (`gh issue view 4 --json body,labels`).
 - [ ] Its message with the links says, for the ticket the requests came from, `reverse` opened as #x and `capitalize` folded into #4.
+
+### 3.5 by hand: GitHub already deleted the branch
+
+`shipping.md` still deletes the remote branch after each merge, but GitHub deletes it first. Reset the sandbox, keep its **After merge** step `git push origin --delete <branch>`, and turn the setting on:
+
+```bash
+gh repo edit <sandbox> --delete-branch-on-merge
+```
+
+Then run `/ship-tickets auto 1 3` in Claude Code, in an Orca terminal in the clone.
+
+- [ ] After each merge, step 7 runs `git ls-remote origin refs/heads/<branch>`, alone or with other reads, without `--exit-code`, it prints no line for the ref, and the coordinator runs no `git push origin --delete`.
+- [ ] The run shows no failed tool call for the cleanup.
+- [ ] #1 and #3 are merged and closed, and `gh api repos/<sandbox>/branches --jq '.[].name'` prints only `main`: both branches are gone.
+- [ ] The final report says exactly once, not once per ticket, that `shipping.md`'s **After merge** deletes a branch GitHub's "Automatically delete head branches" already deletes, and names `setup-ship-tickets` as the fix.
+
+Reset the sandbox afterwards, which turns the setting off.
 
 ## When you're done
 
