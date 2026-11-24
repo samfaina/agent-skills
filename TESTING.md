@@ -314,7 +314,7 @@ gh repo edit <sandbox> --delete-branch-on-merge
 
 Then run `/ship-tickets auto 1 3` in Claude Code, in an Orca terminal in the clone.
 
-- [ ] After each merge, step 7 runs `git ls-remote origin refs/heads/<branch>` on its own, without `--exit-code`, it exits 0 with no output, and the coordinator runs no `git push origin --delete`.
+- [ ] After each merge, step 7 runs `git ls-remote origin refs/heads/<branch>`, alone or with other reads, without `--exit-code`, it prints no line for the ref, and the coordinator runs no `git push origin --delete`.
 - [ ] The run shows no failed tool call for the cleanup.
 - [ ] #1 and #3 are merged and closed, and `gh api repos/<sandbox>/branches --jq '.[].name'` prints only `main`: both branches are gone.
 - [ ] The final report says exactly once, not once per ticket, that `shipping.md`'s **After merge** deletes a branch GitHub's "Automatically delete head branches" already deletes, and names `setup-ship-tickets` as the fix.
